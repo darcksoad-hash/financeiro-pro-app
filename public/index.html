@@ -3,408 +3,398 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinancePro V6.0 - Inteligência de Crédito</title>
+    <title>FinancePro V7.0 - Fluxo de Caixa Integrado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
         .modal.active { display: flex; }
-        .nav-active { background-color: #10b981 !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .stat-card:hover { transform: translateY(-4px); transition: all 0.3s ease; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .sidebar-item.active { background: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        .bg-atrasado { background-color: #fee2e2; color: #dc2626; }
+        .bg-pago { background-color: #dcfce7; color: #16a34a; }
+        .bg-pendente { background-color: #fef3c7; color: #d97706; }
+        .status-badge { padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
 <body class="text-slate-800">
 
     <div id="loginScreen" class="min-h-screen flex items-center justify-center p-6 bg-slate-950">
-        <div class="bg-white w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl">
+        <div class="bg-white w-full max-w-md p-10 rounded-3xl shadow-2xl">
             <div class="flex items-center gap-3 mb-8">
-                <div class="bg-emerald-500 p-3 rounded-2xl text-white">
-                    <i class="fas fa-chart-line text-xl"></i>
+                <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                    <i class="fas fa-chart-line text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-black tracking-tight leading-none uppercase">Finance<span class="text-emerald-500">Pro</span></h1>
-                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Acesso Seguro</span>
+                    <h1 class="font-black text-2xl tracking-tight text-slate-900">FinancePro</h1>
+                    <span class="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Acesso Seguro</span>
                 </div>
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Usuario</label>
-                    <input type="text" id="login-user" autocomplete="username" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Usuario</label>
+                    <input type="text" id="login-user" autocomplete="username" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Senha</label>
-                    <input type="password" id="login-pass" autocomplete="current-password" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Senha</label>
+                    <input type="password" id="login-pass" autocomplete="current-password" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
                 </div>
-                <button onclick="login()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg uppercase text-[10px] tracking-widest">
-                    Entrar
-                </button>
+                <button onclick="login()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Entrar</button>
             </div>
         </div>
     </div>
 
-    <div id="appShell" class="hidden min-h-screen flex flex-col lg:flex-row">
-        <aside class="w-full lg:w-72 bg-slate-900 text-white p-6 flex-shrink-0 flex flex-col border-r border-slate-800">
-            <div class="flex items-center gap-3 mb-10">
-                <div class="bg-emerald-500 p-2.5 rounded-2xl shadow-lg shadow-emerald-500/20">
-                    <i class="fas fa-chart-line text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-black tracking-tight leading-none uppercase">Finance<span class="text-emerald-400">Pro</span></h1>
-                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Analytic V6.0</span>
+    <div id="appShell" class="hidden flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col sticky top-0 h-screen">
+            <div class="p-6 border-b border-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <i class="fas fa-chart-line text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-xl tracking-tight text-slate-900">FinancePro</h1>
+                        <span class="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Versão 7.0 Gold</span>
+                    </div>
                 </div>
             </div>
-            
-            <nav class="space-y-1.5 flex-1">
-                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left text-slate-400 hover:bg-slate-800 font-medium">
-                    <i class="fas fa-chart-pie w-5"></i> Dashboard Central
+
+            <nav class="flex-1 p-4 space-y-1">
+                <button onclick="showSection('dashboard')" id="btn-dashboard" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-slate-500">
+                    <i class="fas fa-grid-2 w-5 text-center"><i class="fas fa-th-large"></i></i> Dashboard
                 </button>
-                <button onclick="switchTab('clients')" id="btn-clients" class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left text-slate-400 hover:bg-slate-800 font-medium">
-                    <i class="fas fa-address-book w-5"></i> Clientes
+                <button onclick="showSection('clients')" id="btn-clients" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-users w-5"></i> Clientes
                 </button>
-                <button onclick="switchTab('loans')" id="btn-loans" class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left text-slate-400 hover:bg-slate-800 font-medium">
-                    <i class="fas fa-hand-holding-dollar w-5"></i> Cobrança Ativa
+                <button onclick="showSection('loans')" id="btn-loans" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-hand-holding-dollar w-5"></i> Empréstimos
                 </button>
-                <button onclick="switchTab('history')" id="btn-history" class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left text-slate-400 hover:bg-slate-800 font-medium">
-                    <i class="fas fa-history w-5"></i> Fluxo de Caixa
+                <button onclick="showSection('history')" id="btn-history" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-receipt w-5"></i> Movimentações
                 </button>
-                <button onclick="switchTab('users')" id="btn-users" class="nav-btn hidden w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left text-slate-400 hover:bg-slate-800 font-medium">
+                <button onclick="showSection('users')" id="btn-users" class="sidebar-item hidden w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-slate-500 hover:bg-slate-50">
                     <i class="fas fa-users-gear w-5"></i> Usuarios
                 </button>
             </nav>
 
-            <div class="mt-auto pt-6 border-t border-slate-800 space-y-3">
-                <button onclick="openLoanModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 uppercase text-[10px] tracking-widest">
-                    <i class="fas fa-plus"></i> Novo Empréstimo
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="exportData()" class="w-full mb-2 flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
+                    <i class="fas fa-download"></i> Exportar JSON
                 </button>
-                
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="exportData()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                        <i class="fas fa-download text-xs"></i> Exportar
-                    </button>
-                    <button onclick="document.getElementById('importInput').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                        <i class="fas fa-upload text-xs"></i> Importar
-                    </button>
-                    <input type="file" id="importInput" class="hidden" accept=".json" onchange="importData(event)">
-                </div>
-                <button onclick="logout()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                    <i class="fas fa-right-from-bracket text-xs"></i> Sair
+                <label class="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-green-600 cursor-pointer transition-colors">
+                    <i class="fas fa-upload"></i> Importar JSON
+                    <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+                </label>
+                <button onclick="logout()" class="w-full mt-2 flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-400 hover:text-rose-600 transition-colors">
+                    <i class="fas fa-right-from-bracket"></i> Sair
                 </button>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-4 lg:p-8">
-            <section id="section-dashboard" class="animate-fade-in space-y-8">
-                <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Dashboard Central</h2>
-                        <p class="text-slate-500 font-medium">Gestão dinâmica e saúde de capital.</p>
-                    </div>
-                </header>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <div class="stat-card bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                        <div class="p-3 bg-slate-50 rounded-2xl text-slate-400 w-fit mb-4"><i class="fas fa-vault"></i></div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital Emprestado</p>
-                        <h3 id="stat-total-emp" class="text-2xl font-black text-slate-900">R$ 0,00</h3>
-                    </div>
-                    <div class="stat-card bg-emerald-500 p-6 rounded-[2rem] shadow-lg shadow-emerald-500/20 text-white">
-                        <div class="p-3 bg-white/20 rounded-2xl w-fit mb-4"><i class="fas fa-hand-holding-dollar"></i></div>
-                        <p class="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Total a Receber</p>
-                        <h3 id="stat-total-rec" class="text-2xl font-black">R$ 0,00</h3>
-                    </div>
-                    <div class="stat-card bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                        <div class="p-3 bg-amber-50 rounded-2xl text-amber-500 w-fit mb-4"><i class="fas fa-piggy-bank"></i></div>
-                        <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Lucro Realizado</p>
-                        <h3 id="stat-total-profit" class="text-2xl font-black text-amber-600">R$ 0,00</h3>
-                    </div>
-                    <div class="stat-card bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-                        <div class="p-3 bg-rose-50 rounded-2xl text-rose-500 w-fit mb-4"><i class="fas fa-calendar-xmark"></i></div>
-                        <p class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Em Atraso</p>
-                        <h3 id="stat-total-pending" class="text-2xl font-black text-rose-600">0</h3>
+        <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto custom-scroll">
+            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40">
+                <div>
+                    <h2 id="page-title" class="text-xl font-bold text-slate-900">Dashboard de Performance</h2>
+                    <p id="page-subtitle" class="text-xs text-slate-500 font-medium uppercase tracking-wider">Acompanhamento de Ativos e Receitas</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Status do Sistema</p>
+                        <p class="text-xs font-bold text-green-500">Sincronizado na Nuvem</p>
                     </div>
                 </div>
+            </header>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[400px]">
-                        <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Performance de Receita</h4>
-                        <div class="h-[300px] relative">
-                            <canvas id="financeChart"></canvas>
+            <div class="p-8 space-y-8">
+                <!-- Seção Dashboard -->
+                <section id="section-dashboard" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-tight">Capital em Rua</p>
+                            <h3 id="dash-capital" class="text-2xl font-black text-slate-900">R$ 0,00</h3>
+                            <div class="mt-4 flex items-center gap-1 text-[10px] font-bold text-indigo-500">
+                                <i class="fas fa-arrow-up"></i> Total Investido
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-tight">Lucro Recebido</p>
+                            <h3 id="dash-profit" class="text-2xl font-black text-green-600">R$ 0,00</h3>
+                            <div class="mt-4 flex items-center gap-1 text-[10px] font-bold text-green-500">
+                                <i class="fas fa-chart-line"></i> Total de Juros Pagos
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-tight">Projeção Atrasos</p>
+                            <h3 id="dash-overdue" class="text-2xl font-black text-rose-600">R$ 0,00</h3>
+                            <div class="mt-4 flex items-center gap-1 text-[10px] font-bold text-rose-500">
+                                <i class="fas fa-clock"></i> Pendente + Multas
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-tight">Novos Negócios</p>
+                            <h3 id="dash-new-count" class="text-2xl font-black text-slate-900">0</h3>
+                            <div class="mt-4 flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                                <i class="fas fa-calendar"></i> Contratos no Mês
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-full flex flex-col">
-                        <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <i class="fas fa-crown text-amber-500"></i> Top 10 Devedores
-                        </h4>
-                        <div id="debtors-ranking" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Últimos Recebimentos</h4>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left min-w-[700px]">
-                            <thead class="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b">
-                                <tr>
-                                    <th class="py-4">Data</th>
-                                    <th class="py-4">Cliente</th>
-                                    <th class="py-4">Tipo</th>
-                                    <th class="py-4 text-right">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dashboard-history-body" class="divide-y divide-slate-50"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <section id="section-clients" class="hidden animate-fade-in">
-                <div class="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Clientes</h2>
-                        <p class="text-slate-500 font-medium">Gerencie sua carteira de contatos.</p>
-                    </div>
-                    <button onclick="openClientModal()" class="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fas fa-user-plus"></i> Novo Cliente
-                    </button>
-                </div>
-                <div id="clients-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </section>
-
-            <section id="section-loans" class="hidden animate-fade-in">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-black text-slate-900 tracking-tight">Cobrança Ativa</h2>
-                    <p class="text-slate-500 font-medium">Gestão de saldos, renovações e abatimentos.</p>
-                </div>
-                <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
-                    <table class="w-full text-left min-w-[1000px]">
-                        <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr>
-                                <th class="px-8 py-6">Cliente / Vencimento</th>
-                                <th class="px-8 py-6">Capital Restante</th>
-                                <th class="px-8 py-6">Juros / Penalidades</th>
-                                <th class="px-8 py-6 text-right">Saldo Devedor</th>
-                                <th class="px-8 py-6 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="loans-table-body" class="divide-y divide-slate-50"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="section-history" class="hidden animate-fade-in">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-black text-slate-900 tracking-tight">Fluxo de Caixa</h2>
-                    <p class="text-slate-500 font-medium">Histórico detalhado de todas as entradas.</p>
-                </div>
-                <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
-                    <table class="w-full text-left min-w-[900px]">
-                        <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr>
-                                <th class="px-8 py-6">Data</th>
-                                <th class="px-8 py-6">Cliente</th>
-                                <th class="px-8 py-6">Operação</th>
-                                <th class="px-8 py-6">Detalhamento</th>
-                                <th class="px-8 py-6 text-right">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table-body" class="divide-y divide-slate-50"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="section-users" class="hidden animate-fade-in">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Usuarios</h2>
-                        <p class="text-slate-500 font-medium">Controle de acesso do sistema.</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                        <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Novo Usuario</h4>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase">Usuario</label>
-                                <input type="text" id="u-name" autocomplete="off" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <div class="flex justify-between items-center mb-8">
+                                <h4 class="font-bold text-slate-900">Evolução de Caixa</h4>
+                                <div class="flex gap-4 text-[10px] font-bold uppercase">
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 bg-indigo-500 rounded-full"></span> Saídas</span>
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 bg-green-500 rounded-full"></span> Entradas</span>
+                                </div>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase">Senha</label>
-                                <input type="password" id="u-pass" autocomplete="new-password" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+                            <div class="h-[300px]">
+                                <canvas id="mainChart"></canvas>
                             </div>
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase">Perfil</label>
-                                <select id="u-role" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none">
-                                    <option value="user">Usuario</option>
-                                    <option value="admin">Admin</option>
-                                </select>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                            <h4 class="font-bold text-slate-900 mb-6">Status dos Ativos</h4>
+                            <div class="flex-1 flex items-center justify-center">
+                                <canvas id="statusChart"></canvas>
                             </div>
-                            <button onclick="createAppUser()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] shadow-lg">Cadastrar</button>
+                            <div id="ranking-list" class="mt-6 space-y-3"></div>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
-                        <table class="w-full text-left min-w-[600px]">
-                            <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                </section>
+
+                <!-- Seção Clientes -->
+                <section id="section-clients" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between gap-4">
+                        <div class="relative max-w-md w-full">
+                            <i class="fas fa-search absolute left-4 top-4 text-slate-300"></i>
+                            <input type="text" id="search-clients" oninput="renderClients()" placeholder="Nome, CPF ou Telefone..." class="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 ring-indigo-100 transition-all">
+                        </div>
+                        <button onclick="openClientModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-plus"></i> Novo Cliente
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 border-b">
                                 <tr>
-                                    <th class="px-8 py-6">Usuario</th>
-                                    <th class="px-8 py-6">Perfil</th>
-                                    <th class="px-8 py-6 text-right">Acao</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Informações Básicas</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço Detalhado</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ações Rápidas</th>
                                 </tr>
                             </thead>
-                            <tbody id="users-table-body" class="divide-y divide-slate-50"></tbody>
+                            <tbody id="clients-table-body"></tbody>
                         </table>
                     </div>
-                </div>
-            </section>
+                </section>
+
+                <!-- Seção Empréstimos -->
+                <section id="section-loans" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between gap-4">
+                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                            <button onclick="setLoanFilter('all')" class="loan-filter-btn active px-6 py-2 rounded-xl text-xs font-bold transition-all bg-white shadow-sm text-indigo-600">Todos</button>
+                            <button onclick="setLoanFilter('atrasado')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Atrasados</button>
+                            <button onclick="setLoanFilter('pago')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Liquidados</button>
+                        </div>
+                        <button onclick="openLoanModal()" class="bg-slate-900 hover:bg-black text-white px-8 py-3 rounded-2xl font-bold transition-all">
+                            Lançar Novo Contrato
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="loans-grid"></div>
+                </section>
+
+                <!-- Seção Movimentações -->
+                <section id="section-history" class="hidden space-y-6">
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Data</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Tipo</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Referência</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="text-sm font-medium"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="section-users" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h4 class="font-bold text-slate-900 mb-6">Novo Usuario</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Usuario</label>
+                                    <input type="text" id="u-name" autocomplete="off" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Senha</label>
+                                    <input type="password" id="u-pass" autocomplete="new-password" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Perfil</label>
+                                    <select id="u-role" class="w-full px-4 py-3 rounded-xl border bg-slate-50 outline-none">
+                                        <option value="user">Usuario</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <button onclick="createAppUser()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">Cadastrar</button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Usuario</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">Perfil</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase text-right">Acao</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="text-sm font-medium"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
-    <!-- Modais -->
+    <!-- Modais (Clientes, Empréstimos e Pagamentos) -->
     <div id="modalClient" class="modal">
-        <div class="bg-white w-full max-w-lg p-10 rounded-[3rem] shadow-2xl animate-fade-in">
-            <h3 id="modal-client-title" class="text-3xl font-black mb-6 text-slate-900">Novo Cliente</h3>
-            <input type="hidden" id="edit-client-id">
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Nome Completo</label>
-                    <input type="text" id="c-name" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden p-8 shadow-2xl">
+            <h3 class="text-2xl font-black mb-6 text-slate-900">Perfil do Cliente</h3>
+            <form onsubmit="handleClientSubmit(event)" class="space-y-4">
+                <input type="hidden" id="client-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome Completo</label>
+                        <input type="text" id="client-name" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">CPF</label>
+                        <input type="text" id="client-cpf" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                    </div>
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">WhatsApp (Apenas números)</label>
-                    <input type="text" id="c-phone" placeholder="11999999999" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none focus:ring-2 ring-emerald-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">WhatsApp (DDD + Número)</label>
+                    <input type="text" id="client-phone" placeholder="Ex: 11999999999" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Endereço Detalhado</label>
-                    <textarea id="c-address" rows="3" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-medium outline-none focus:ring-2 ring-emerald-500 text-sm"></textarea>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
+                    <textarea id="client-address" rows="3" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none resize-none" placeholder="Rua, Número, Complemento, Bairro..."></textarea>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mt-8">
-                <button onclick="toggleModal('modalClient')" class="py-4 font-black text-slate-400 uppercase text-[10px]">Cancelar</button>
-                <button onclick="saveClient()" id="btn-save-client" class="py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] shadow-lg">Salvar Cliente</button>
-            </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="toggleModal('modalClient')" class="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-2xl transition-all">Cancelar</button>
+                    <button type="submit" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Salvar Registro</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <div id="modalLoan" class="modal">
-        <div class="bg-white w-full max-w-lg p-10 rounded-[3rem] shadow-2xl animate-fade-in">
-            <h3 class="text-3xl font-black mb-6 text-slate-900">Novo Contrato</h3>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Selecionar Cliente</label>
-                    <select id="l-client-id" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none"></select>
-                </div>
+        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden p-8 shadow-2xl">
+            <h3 class="text-2xl font-black mb-6 text-slate-900">Novo Contrato</h3>
+            <form onsubmit="handleLoanSubmit(event)" class="space-y-4">
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Valor Emprestado (R$)</label>
-                    <input type="number" id="l-value" placeholder="2000" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-black text-xl outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Selecione o Cliente</label>
+                    <select id="loan-client" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 outline-none"></select>
                 </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Juros Mensais (%)</label>
-                    <input type="number" id="l-rate" value="30" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-black text-xl outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Vencimento Inicial</label>
-                    <input type="date" id="l-due" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-bold outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Mora p/ Dia Atraso (R$)</label>
-                    <input type="number" id="l-daily" value="10" class="w-full px-5 py-4 rounded-2xl border bg-slate-50 font-black text-xl outline-none">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mt-8">
-                <button onclick="toggleModal('modalLoan')" class="py-4 font-black text-slate-400 uppercase text-[10px]">Fechar</button>
-                <button onclick="saveLoan()" class="py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] shadow-lg">Criar Contrato</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalPay" class="modal">
-        <div class="bg-white w-full max-w-md p-10 rounded-[3rem] shadow-2xl animate-fade-in">
-            <h3 id="pay-title" class="text-2xl font-black mb-1 text-slate-900 text-center uppercase tracking-tight">Recebimento</h3>
-            <div id="pay-breakdown" class="bg-emerald-50/50 p-6 rounded-3xl mb-6 space-y-2 border border-emerald-100"></div>
-            
-            <input type="hidden" id="pay-loan-id">
-            <input type="hidden" id="pay-type">
-            
-            <div class="space-y-4">
-                <div id="new-due-container" class="hidden">
-                    <label class="text-[10px] font-black text-emerald-600 uppercase block mb-1">Novo Vencimento (Renovação)</label>
-                    <input type="date" id="new-due-date" class="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-white font-bold outline-none focus:ring-2 ring-emerald-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Valor do Pagamento (R$)</label>
-                    <div class="relative">
-                        <input type="number" id="pay-amount" class="w-full px-5 py-6 text-3xl font-black text-center rounded-3xl border-2 border-slate-100 bg-white text-slate-900 outline-none transition-all">
-                        <div id="lock-icon" class="absolute right-6 top-1/2 -translate-y-1/2 text-amber-500 hidden"><i class="fas fa-lock text-xl"></i></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Valor Capital</label>
+                        <input type="number" step="0.01" id="loan-amount" required class="w-full px-4 py-3 rounded-xl border bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Taxa Juros (%)</label>
+                        <input type="number" step="0.1" id="loan-rate" value="30" required class="w-full px-4 py-3 rounded-xl border bg-slate-50">
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Mora Diária (R$)</label>
+                        <input type="number" step="0.01" id="loan-mora" value="5.00" required class="w-full px-4 py-3 rounded-xl border bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Vencimento</label>
+                        <input type="date" id="loan-date" required class="w-full px-4 py-3 rounded-xl border bg-slate-50">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black mt-4">Ativar Contrato</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Liquidação / Pagamento -->
+    <div id="modalPayment" class="modal">
+        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden p-8 shadow-2xl space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-black">Processar Recebimento</h3>
+                <button onclick="toggleModal('modalPayment')"><i class="fas fa-times text-slate-400"></i></button>
             </div>
-            <div class="grid grid-cols-2 gap-4 mt-8">
-                <button onclick="toggleModal('modalPay')" class="py-4 font-black text-slate-400 uppercase text-[10px]">Cancelar</button>
-                <button onclick="confirmPayment()" class="py-4 bg-emerald-600 text-white font-black rounded-2xl uppercase text-[10px] shadow-lg">Confirmar</button>
+            
+            <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-indigo-600 uppercase">Total Devido Hoje</span>
+                    <span id="pay-total-due" class="text-2xl font-black text-indigo-700">R$ 0,00</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[10px] font-bold uppercase text-indigo-400">
+                    <div>Capital: <span id="pay-base" class="text-slate-900 block mt-1"></span></div>
+                    <div>Juros: <span id="pay-interest" class="text-slate-900 block mt-1"></span></div>
+                    <div>Multas: <span id="pay-fines" class="text-rose-500 block mt-1"></span></div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Amortizar Capital (R$)</label>
+                        <input type="number" step="0.01" id="pay-amortize" oninput="calculatePaymentTotals()" value="0" class="w-full px-4 py-3 border rounded-xl font-bold text-indigo-600 outline-none">
+                        <p class="text-[9px] text-slate-400 mt-1">Reduz a dívida principal para o próximo ciclo.</p>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nova Data (Se Renovar)</label>
+                        <input type="date" id="pay-next-date" class="w-full px-4 py-3 border rounded-xl outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="processRenovacao()" class="group flex flex-col items-center justify-center p-6 border-2 border-orange-100 bg-orange-50/30 rounded-2xl hover:bg-orange-50 transition-all">
+                        <span class="text-[10px] font-bold text-orange-400 uppercase mb-2 tracking-widest">Renovação</span>
+                        <span id="btn-val-interest" class="text-xl font-black text-orange-600">R$ 0,00</span>
+                        <span class="text-[9px] text-slate-400 mt-2">Receber Apenas Rendimentos</span>
+                    </button>
+                    <button onclick="processQuitacao()" class="group flex flex-col items-center justify-center p-6 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Quitação Total</span>
+                        <span id="btn-val-total" class="text-xl font-black">R$ 0,00</span>
+                        <span class="text-[9px] text-slate-500 mt-2">Receber Tudo e Encerrar</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="modalClientHistory" class="modal">
-        <div class="bg-white w-full max-w-3xl p-8 rounded-[3rem] shadow-2xl animate-fade-in max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 id="history-client-name" class="text-2xl font-black text-slate-900 uppercase">Nome do Cliente</h3>
-                    <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Histórico Consolidado</p>
-                </div>
-                <button onclick="toggleModal('modalClientHistory')" class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="grid grid-cols-3 gap-4 mb-8">
-                <div class="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Total Já Pago</p>
-                    <p id="h-total-paid" class="text-sm font-black text-emerald-600">R$ 0,00</p>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Contratos Ativos</p>
-                    <p id="h-active-loans" class="text-sm font-black text-slate-900">0</p>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Dívida Atual</p>
-                    <p id="h-current-debt" class="text-sm font-black text-rose-600">R$ 0,00</p>
-                </div>
-            </div>
-            <div class="flex-1 overflow-y-auto pr-2">
-                <div id="client-history-timeline" class="space-y-3"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalConfirm" class="modal">
-        <div class="bg-white w-full max-w-sm p-8 rounded-[2.5rem] shadow-2xl animate-fade-in text-center">
-            <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fas fa-trash-alt text-3xl"></i></div>
-            <h3 class="text-2xl font-black mb-2 text-slate-900">Confirmar Exclusão?</h3>
-            <input type="hidden" id="delete-id"><input type="hidden" id="delete-type">
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="toggleModal('modalConfirm')" class="py-4 font-black text-slate-400 uppercase text-[10px]">Cancelar</button>
-                <button onclick="executeDelete()" class="py-4 bg-rose-600 text-white font-black rounded-2xl uppercase text-[10px] shadow-lg">Excluir</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase shadow-2xl transform translate-y-20 opacity-0 transition-all z-[200]"></div>
+    <div id="toast" class="fixed bottom-8 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-[200]"></div>
 
     <script>
+        // --- DATA STATE ---
         let clients = [];
         let loans = [];
+        let history = [];
         let currentUser = null;
-        let myChart = null;
-        const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        let activeLoanId = null;
+        let loanFilter = 'all';
+        let charts = { main: null, status: null };
+
+        // --- CORE LOGIC ---
+        window.onload = () => initApp();
 
         async function api(path, options = {}) {
             const response = await fetch(path, {
@@ -437,16 +427,6 @@
             location.reload();
         }
 
-        async function loadApp() {
-            const state = await api('/api/state');
-            clients = state.clients || [];
-            loans = state.loans || [];
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('appShell').classList.remove('hidden');
-            document.getElementById('btn-users').classList.toggle('hidden', currentUser?.role !== 'admin');
-            switchTab('dashboard');
-        }
-
         async function initApp() {
             try {
                 const session = await api('/api/session');
@@ -458,361 +438,434 @@
             }
         }
 
-        function switchTab(tab) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
-            document.getElementById(`section-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-${tab}`).classList.add('nav-active');
-            if(tab === 'dashboard') renderDashboard();
-            if(tab === 'clients') renderClients();
-            if(tab === 'loans') renderLoans();
-            if(tab === 'history') renderHistory();
-            if(tab === 'users') renderUsers();
+        async function loadApp() {
+            const state = await api('/api/state');
+            clients = state.clients || [];
+            loans = state.loans || [];
+            history = state.history || [];
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appShell').classList.remove('hidden');
+            document.getElementById('btn-users').classList.toggle('hidden', currentUser?.role !== 'admin');
+            initCharts();
+            refreshAll();
         }
 
-        function calculateLoan(l) {
-            const currentPrincipal = parseFloat(l.value); 
-            const baseForInterest = parseFloat(l.initialValue); 
-            const rate = parseFloat(l.rate) / 100;
-            const baseInterest = baseForInterest * rate; 
-            const subtotal = currentPrincipal + baseInterest; 
-            
-            const due = new Date(l.due + 'T12:00:00');
-            const today = new Date();
-            today.setHours(12,0,0,0);
-            
-            let daysOverdue = 0, penalty = 0, moraTotal = 0;
-            if (today > due) {
-                const diffTime = Math.abs(today - due);
-                daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                penalty = subtotal * 0.10; 
-                moraTotal = daysOverdue * parseFloat(l.dailyInterest);
-            }
-            
-            return {
-                principal: currentPrincipal,
-                baseInterest,
-                penalty,
-                moraTotal,
-                daysOverdue,
-                totalBalance: subtotal + penalty + moraTotal
-            };
+        function refreshAll() {
+            renderDashboard();
+            renderClients();
+            renderLoans();
+            renderHistory();
+            saveData();
         }
 
-        function renderDashboard() {
-            let active = 0, receivable = 0, profit = 0, pending = 0;
-            let ranking = [];
-            
-            loans.forEach(l => {
-                const c = calculateLoan(l);
-                active += c.principal;
-                receivable += c.totalBalance;
-                if(c.daysOverdue > 0) pending++;
-                ranking.push({ name: l.clientName, debt: c.totalBalance, late: c.daysOverdue > 0 });
-                l.payments.forEach(p => {
-                    profit += (p.detail.juros + p.detail.multa + p.detail.mora);
+        async function saveData() {
+            try {
+                await api('/api/state', {
+                    method: 'PUT',
+                    body: JSON.stringify({ clients, loans, history })
                 });
-            });
-
-            document.getElementById('stat-total-emp').innerText = currency.format(active);
-            document.getElementById('stat-total-rec').innerText = currency.format(receivable);
-            document.getElementById('stat-total-profit').innerText = currency.format(profit);
-            document.getElementById('stat-total-pending').innerText = pending;
-
-            const rankingEl = document.getElementById('debtors-ranking');
-            ranking.sort((a,b) => b.debt - a.debt);
-            rankingEl.innerHTML = ranking.slice(0, 10).map((d, i) => `
-                <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 flex items-center justify-center ${i < 3 ? 'bg-emerald-500' : 'bg-slate-900'} text-white text-[9px] font-black rounded-full">${i+1}</span>
-                        <p class="text-[10px] font-black uppercase text-slate-800">${d.name}</p>
-                    </div>
-                    <span class="text-[10px] font-black ${d.late ? 'text-rose-500' : 'text-slate-600'}">${currency.format(d.debt)}</span>
-                </div>
-            `).join('') || '<p class="text-center py-10 text-[10px] text-slate-400 font-black uppercase">Nenhum devedor</p>';
-
-            let allPayments = [];
-            loans.forEach(l => l.payments.forEach(p => allPayments.push({...p, cName: l.clientName})));
-            allPayments.sort((a,b) => new Date(b.date) - new Date(a.date));
-            
-            document.getElementById('dashboard-history-body').innerHTML = allPayments.slice(0, 5).map(p => `
-                <tr>
-                    <td class="py-4 text-[10px] font-bold text-slate-400">${p.date.split(',')[0]}</td>
-                    <td class="py-4 text-[10px] font-black text-slate-800 uppercase">${p.cName}</td>
-                    <td class="py-4"><span class="px-2 py-1 rounded-full text-[8px] font-black uppercase ${p.type==='PAGAMENTO' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}">${p.type}</span></td>
-                    <td class="py-4 text-right text-[11px] font-black text-emerald-600">${currency.format(p.amount)}</td>
-                </tr>
-            `).join('') || '<tr><td colspan="4" class="py-8 text-center text-[10px] text-slate-400 uppercase font-black">Sem movimentações</td></tr>';
-
-            updateChart(allPayments);
+            } catch(error) {
+                showToast(error.message);
+            }
         }
 
-        function updateChart(payments) {
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            const months = {};
-            payments.forEach(p => {
-                const month = p.date.split('/')[1] + '/' + p.date.split('/')[2].split(',')[0];
-                months[month] = (months[month] || 0) + p.amount;
-            });
-            const labels = Object.keys(months).reverse().slice(-6);
-            const data = labels.map(l => months[l]);
+        function showSection(id) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${id}`).classList.remove('hidden');
+            document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${id}`).classList.add('active');
+            
+            const titles = { 
+                dashboard: ['Dashboard de Performance', 'Acompanhamento de Ativos e Receitas'],
+                clients: ['Gestão de Carteira', 'Cadastro e Manutenção de Clientes'],
+                loans: ['Contratos Ativos', 'Gerenciamento de Ciclos de Crédito'],
+                history: ['Livro de Movimentações', 'Log completo de Entradas e Saídas'],
+                users: ['Usuarios', 'Controle de acesso do sistema']
+            };
+            document.getElementById('page-title').innerText = titles[id][0];
+            document.getElementById('page-subtitle').innerText = titles[id][1];
+            if(id === 'users') renderUsers();
+        }
 
-            if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Receitas',
-                        data,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 4, tension: 0.4, fill: true,
-                        pointBackgroundColor: '#10b981', pointRadius: 5
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 9 } } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } }
-                }
-            });
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.classList.toggle('active');
+        }
+
+        // --- MATH ENGINE ---
+        function calculateLoan(loan) {
+            const today = new Date();
+            const dueDate = new Date(loan.date);
+            const isOverdue = today > dueDate && loan.status !== 'pago';
+            
+            let fines = 0;
+            let mora = 0;
+            let daysLate = 0;
+
+            if (isOverdue) {
+                const diffTime = Math.abs(today - dueDate);
+                daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const cycleInterest = loan.amount * (loan.rate / 100);
+                fines = (loan.amount + cycleInterest) * 0.10; // 10% multa fixa
+                mora = daysLate * loan.mora;
+            }
+
+            const baseInterest = loan.amount * (loan.rate / 100);
+            const totalRendimentos = baseInterest + fines + mora;
+            const totalFull = loan.amount + totalRendimentos;
+
+            return { isOverdue, daysLate, fines, mora, baseInterest, totalRendimentos, totalFull };
+        }
+
+        // --- ACTIONS: CLIENTS ---
+        function openClientModal(id = null) {
+            const fields = ['client-id', 'client-name', 'client-cpf', 'client-phone', 'client-address'];
+            if(id) {
+                const c = clients.find(cl => cl.id === id);
+                fields.forEach(f => document.getElementById(f).value = c[f.split('-')[1]] || '');
+            } else {
+                fields.forEach(f => document.getElementById(f).value = '');
+            }
+            toggleModal('modalClient');
+        }
+
+        function handleClientSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('client-id').value || Date.now().toString();
+            const data = {
+                id,
+                name: document.getElementById('client-name').value,
+                cpf: document.getElementById('client-cpf').value,
+                phone: document.getElementById('client-phone').value.replace(/\D/g, ''),
+                address: document.getElementById('client-address').value
+            };
+            const idx = clients.findIndex(c => c.id === id);
+            if(idx > -1) clients[idx] = data; else clients.push(data);
+            refreshAll();
+            toggleModal('modalClient');
+            showToast("Registro do cliente atualizado!");
         }
 
         function renderClients() {
-            const select = document.getElementById('l-client-id');
-            if(select) select.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            
-            document.getElementById('clients-list').innerHTML = clients.map(c => {
-                const cleanPhone = c.phone.replace(/\D/g, '');
-                return `
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm group hover:shadow-xl transition-all cursor-pointer relative overflow-hidden" onclick="viewClientHistory('${c.id}')">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h4 class="text-lg font-black text-slate-900 uppercase">${c.name}</h4>
-                            <p class="text-xs font-bold text-slate-400">${c.phone}</p>
-                        </div>
-                        <div class="flex gap-2" onclick="event.stopPropagation()">
-                            <a href="https://wa.me/${cleanPhone}" target="_blank" class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"><i class="fab fa-whatsapp text-lg"></i></a>
-                            <button onclick="editClient('${c.id}')" class="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all"><i class="fas fa-pen text-xs"></i></button>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-2xl mb-4">
-                        <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Endereço</p>
-                        <p class="text-[10px] text-slate-600 font-medium truncate">${c.address || 'Não informado'}</p>
-                    </div>
-                    <div class="flex items-center justify-between">
-                         <span class="text-[9px] font-black text-emerald-600 uppercase"><i class="fas fa-history mr-1"></i> Ver Histórico</span>
-                         <button onclick="event.stopPropagation(); askDelete('client', '${c.id}')" class="text-slate-300 hover:text-rose-500 transition-all"><i class="fas fa-trash-alt text-xs"></i></button>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        function renderLoans() {
-            document.getElementById('loans-table-body').innerHTML = loans.map(l => {
-                const c = calculateLoan(l);
-                const isLate = c.daysOverdue > 0;
-                return `
-                <tr>
-                    <td class="px-8 py-6">
-                        <p class="text-xs font-black text-slate-900 uppercase">${l.clientName}</p>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[10px] font-bold ${isLate ? 'text-rose-500' : 'text-slate-400'}">Vence: ${l.due.split('-').reverse().join('/')}</span>
-                            ${isLate ? `<span class="px-2 py-0.5 bg-rose-100 text-rose-600 text-[8px] font-black rounded-full uppercase">ATRASADO ${c.daysOverdue}D</span>` : ''}
+            const term = document.getElementById('search-clients').value.toLowerCase();
+            const tbody = document.getElementById('clients-table-body');
+            tbody.innerHTML = clients.filter(c => c.name.toLowerCase().includes(term) || c.cpf.includes(term) || c.phone.includes(term)).map(c => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-900">${c.name}</div>
+                        <div class="text-[11px] font-bold text-indigo-500">${c.cpf}</div>
+                        <div class="text-[10px] text-slate-400 font-medium uppercase mt-1">FONE: ${c.phone}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-xs text-slate-500 max-w-xs leading-relaxed italic">"${c.address || 'Endereço não informado'}"</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <a href="https://wa.me/55${c.phone}" target="_blank" class="w-9 h-9 flex items-center justify-center bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <button onclick="openClientModal('${c.id}')" class="w-9 h-9 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteClient('${c.id}')" class="w-9 h-9 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </td>
-                    <td class="px-8 py-6">
-                        <p class="text-[11px] font-black text-slate-900">${currency.format(c.principal)}</p>
-                        <p class="text-[8px] font-bold text-slate-400 uppercase">Base: ${currency.format(l.initialValue)}</p>
-                    </td>
-                    <td class="px-8 py-6">
-                        <div class="space-y-0.5">
-                            <p class="text-[9px] font-bold text-slate-500">JURO (+${l.rate}%): ${currency.format(c.baseInterest)}</p>
-                            ${c.penalty > 0 ? `<p class="text-[9px] font-black text-rose-500">MULTA (10%): ${currency.format(c.penalty)}</p>` : ''}
-                            ${c.moraTotal > 0 ? `<p class="text-[9px] font-black text-rose-400">MORA (${c.daysOverdue}d): ${currency.format(c.moraTotal)}</p>` : ''}
-                        </div>
-                    </td>
-                    <td class="px-8 py-6 text-right">
-                        <p class="text-lg font-black ${isLate ? 'text-rose-600' : 'text-emerald-600'}">${currency.format(c.totalBalance)}</p>
-                    </td>
-                    <td class="px-8 py-6">
-                        <div class="flex justify-center gap-2">
-                            <button onclick="openPay('${l.id}', 'PAGAMENTO')" class="px-3 py-2 bg-emerald-100 text-emerald-600 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Juros</button>
-                            <button onclick="openPay('${l.id}', 'AMORTIZACAO')" class="px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 hover:text-white transition-all">Abater</button>
-                            <button onclick="openPay('${l.id}', 'QUITACAO')" class="px-3 py-2 bg-amber-100 text-amber-600 rounded-xl text-[9px] font-black uppercase hover:bg-amber-600 hover:text-white transition-all">Quitar</button>
-                            <button onclick="askDelete('loan', '${l.id}')" class="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all"><i class="fas fa-trash-alt text-xs"></i></button>
-                        </div>
-                    </td>
-                </tr>
-            `}).join('') || '<tr><td colspan="5" class="py-20 text-center text-[10px] text-slate-400 font-black uppercase">Nenhum contrato ativo</td></tr>';
-        }
-
-        function toggleModal(id) { document.getElementById(id).classList.toggle('active'); }
-
-        function openClientModal() {
-            document.getElementById('modal-client-title').innerText = "Novo Cliente";
-            document.getElementById('edit-client-id').value = "";
-            document.getElementById('c-name').value = "";
-            document.getElementById('c-phone').value = "";
-            document.getElementById('c-address').value = "";
-            toggleModal('modalClient');
-        }
-
-        function editClient(id) {
-            const c = clients.find(x => x.id == id);
-            document.getElementById('modal-client-title').innerText = "Editar Cliente";
-            document.getElementById('edit-client-id').value = c.id;
-            document.getElementById('c-name').value = c.name;
-            document.getElementById('c-phone').value = c.phone;
-            document.getElementById('c-address').value = c.address;
-            toggleModal('modalClient');
-        }
-
-        function saveClient() {
-            const id = document.getElementById('edit-client-id').value;
-            const clientData = {
-                id: id || Date.now().toString(),
-                name: document.getElementById('c-name').value,
-                phone: document.getElementById('c-phone').value,
-                address: document.getElementById('c-address').value
-            };
-            if(!clientData.name || !clientData.phone) return showToast("Preencha Nome e WhatsApp");
-            
-            if(id) {
-                const idx = clients.findIndex(x => x.id == id);
-                clients[idx] = clientData;
-                loans.forEach(l => { if(l.clientId == id) l.clientName = clientData.name; });
-            } else {
-                clients.push(clientData);
-            }
-            saveData(); toggleModal('modalClient'); renderClients(); showToast(id ? "Atualizado!" : "Cadastrado!");
-        }
-
-        function openLoanModal() {
-            if(clients.length === 0) return showToast("Cadastre um cliente primeiro");
-            document.getElementById('l-due').value = new Date().toISOString().split('T')[0];
-            renderClients(); toggleModal('modalLoan');
-        }
-
-        function saveLoan() {
-            const l = {
-                id: Date.now().toString(),
-                clientId: document.getElementById('l-client-id').value,
-                clientName: document.getElementById('l-client-id').options[document.getElementById('l-client-id').selectedIndex].text,
-                initialValue: parseFloat(document.getElementById('l-value').value),
-                value: parseFloat(document.getElementById('l-value').value),
-                rate: parseFloat(document.getElementById('l-rate').value),
-                due: document.getElementById('l-due').value,
-                dailyInterest: parseFloat(document.getElementById('l-daily').value),
-                payments: []
-            };
-            if(!l.value || !l.due) return showToast("Preencha valor e data");
-            loans.push(l); saveData(); toggleModal('modalLoan'); switchTab('loans'); showToast("Contrato Criado!");
-        }
-
-        function openPay(loanId, type) {
-            const l = loans.find(x => x.id == loanId);
-            const c = calculateLoan(l);
-            const amtInput = document.getElementById('pay-amount');
-            const breakdown = document.getElementById('pay-breakdown');
-            const lockIcon = document.getElementById('lock-icon');
-            const dueContainer = document.getElementById('new-due-container');
-            
-            document.getElementById('pay-loan-id').value = loanId;
-            document.getElementById('pay-type').value = type;
-            amtInput.readOnly = false; lockIcon.classList.add('hidden'); dueContainer.classList.add('hidden');
-
-            if(type === 'PAGAMENTO') {
-                document.getElementById('pay-title').innerText = "Renovação (Juros)";
-                const totalJuros = c.baseInterest + c.penalty + c.moraTotal;
-                amtInput.value = totalJuros.toFixed(2); amtInput.readOnly = true; lockIcon.classList.remove('hidden'); dueContainer.classList.remove('hidden');
-                breakdown.innerHTML = `<div class="text-[10px] font-black uppercase">Juros: ${currency.format(c.baseInterest)} | Multa: ${currency.format(c.penalty)} | Mora: ${currency.format(c.moraTotal)}</div>`;
-                let next = new Date(l.due + 'T12:00:00'); next.setMonth(next.getMonth() + 1);
-                document.getElementById('new-due-date').value = next.toISOString().split('T')[0];
-            } else if(type === 'AMORTIZACAO') {
-                document.getElementById('pay-title').innerText = "Abater Capital";
-                amtInput.value = ""; breakdown.innerHTML = `<div class="text-[10px] font-black uppercase text-center">Capital Atual: ${currency.format(c.principal)}</div>`;
-            } else {
-                document.getElementById('pay-title').innerText = "Liquidação Total";
-                amtInput.value = c.totalBalance.toFixed(2); amtInput.readOnly = true; lockIcon.classList.remove('hidden');
-                breakdown.innerHTML = `<div class="text-[10px] font-black uppercase text-center text-emerald-600">Total para encerramento</div>`;
-            }
-            toggleModal('modalPay');
-        }
-
-        function confirmPayment() {
-            const id = document.getElementById('pay-loan-id').value, amt = parseFloat(document.getElementById('pay-amount').value);
-            const type = document.getElementById('pay-type').value, lIdx = loans.findIndex(x => x.id == id), l = loans[lIdx];
-            const c = calculateLoan(l);
-            const p = { date: new Date().toLocaleString('pt-BR'), type, amount: amt, detail: { principal: 0, juros: 0, multa: 0, mora: 0 } };
-
-            if(type === 'PAGAMENTO') {
-                p.detail = { principal: 0, juros: c.baseInterest, multa: c.penalty, mora: c.moraTotal };
-                l.initialValue = l.value; l.due = document.getElementById('new-due-date').value;
-            } else if(type === 'AMORTIZACAO') {
-                p.detail.principal = amt; l.value -= amt;
-            } else {
-                p.detail = { principal: l.value, juros: c.baseInterest, multa: c.penalty, mora: c.moraTotal };
-                loans.splice(lIdx, 1);
-            }
-
-            if(type !== 'QUITACAO') l.payments.push(p);
-            saveData(); toggleModal('modalPay'); switchTab('loans'); showToast("Recebimento Confirmado!");
-        }
-
-        function viewClientHistory(clientId) {
-            const client = clients.find(c => c.id == clientId);
-            document.getElementById('history-client-name').innerText = client.name;
-            let totalPaid = 0, debt = 0, active = 0, pays = [];
-            loans.filter(l => l.clientId == clientId).forEach(l => {
-                const c = calculateLoan(l); debt += c.totalBalance; active++;
-                l.payments.forEach(p => { pays.push(p); totalPaid += p.amount; });
-            });
-            document.getElementById('h-total-paid').innerText = currency.format(totalPaid);
-            document.getElementById('h-active-loans').innerText = active;
-            document.getElementById('h-current-debt').innerText = currency.format(debt);
-            document.getElementById('client-history-timeline').innerHTML = pays.sort((a,b) => new Date(b.date) - new Date(a.date)).map(p => `
-                <div class="p-4 rounded-2xl bg-slate-50 border-l-4 ${p.type==='PAGAMENTO'?'border-emerald-500':'border-amber-500'}">
-                    <div class="flex justify-between text-[9px] font-black uppercase text-slate-400 mb-1"><span>${p.date}</span><span>${p.type}</span></div>
-                    <p class="text-xs font-black text-slate-800">${currency.format(p.amount)}</p>
-                </div>
-            `).join('') || '<p class="text-center py-10 text-[10px] uppercase font-black text-slate-300">Sem histórico</p>';
-            toggleModal('modalClientHistory');
-        }
-
-        function renderHistory() {
-            let h = []; loans.forEach(l => l.payments.forEach(p => h.push({...p, cName: l.clientName})));
-            document.getElementById('history-table-body').innerHTML = h.sort((a,b) => new Date(b.date) - new Date(a.date)).map(p => `
-                <tr>
-                    <td class="px-8 py-4 text-[10px] font-bold text-slate-400">${p.date}</td>
-                    <td class="px-8 py-4 text-[10px] font-black uppercase">${p.cName}</td>
-                    <td class="px-8 py-4"><span class="px-2 py-1 rounded-full text-[8px] font-black uppercase ${p.type==='PAGAMENTO'?'bg-emerald-100 text-emerald-600':'bg-slate-100 text-slate-600'}">${p.type}</span></td>
-                    <td class="px-8 py-4 text-[9px] font-medium text-slate-500">P: ${currency.format(p.detail.principal)} | J: ${currency.format(p.detail.juros+p.detail.multa+p.detail.mora)}</td>
-                    <td class="px-8 py-4 text-right text-[11px] font-black text-emerald-600">${currency.format(p.amount)}</td>
                 </tr>
             `).join('');
         }
 
-        function askDelete(type, id) { document.getElementById('delete-id').value = id; document.getElementById('delete-type').value = type; toggleModal('modalConfirm'); }
-        function executeDelete() {
-            const id = document.getElementById('delete-id').value, type = document.getElementById('delete-type').value;
-            if(type === 'client') { clients = clients.filter(c => c.id !== id); loans = loans.filter(l => l.clientId !== id); }
-            else { loans = loans.filter(l => l.id !== id); }
-            saveData(); toggleModal('modalConfirm'); renderDashboard(); renderClients(); renderLoans(); showToast("Excluído!");
+        function deleteClient(id) {
+            if(!confirm("Cuidado! Ao remover o cliente, todos os empréstimos e históricos dele serão perdidos. Confirmar?")) return;
+            clients = clients.filter(c => c.id !== id);
+            loans = loans.filter(l => l.clientId !== id);
+            history = history.filter(h => h.clientId !== id);
+            refreshAll();
+        }
+
+        // --- ACTIONS: LOANS ---
+        function openLoanModal() {
+            const select = document.getElementById('loan-client');
+            select.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            if(!clients.length) return showToast("Cadastre pelo menos um cliente primeiro!");
+            toggleModal('modalLoan');
+        }
+
+        function handleLoanSubmit(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('loan-amount').value);
+            const loan = {
+                id: Date.now().toString(),
+                clientId: document.getElementById('loan-client').value,
+                amount: amount,
+                rate: parseFloat(document.getElementById('loan-rate').value),
+                mora: parseFloat(document.getElementById('loan-mora').value),
+                date: document.getElementById('loan-date').value,
+                status: 'pendente',
+                createdAt: new Date().toISOString()
+            };
+            
+            loans.push(loan);
+            addHistory(loan.clientId, 'SAÍDA (EMPRÉSTIMO)', amount);
+            
+            refreshAll();
+            toggleModal('modalLoan');
+            showToast("Novo contrato ativado com sucesso!");
+        }
+
+        function setLoanFilter(f) {
+            loanFilter = f;
+            document.querySelectorAll('.loan-filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-white', 'shadow-sm', 'text-indigo-600');
+                b.classList.add('text-slate-500');
+            });
+            event.target.classList.add('active', 'bg-white', 'shadow-sm', 'text-indigo-600');
+            renderLoans();
+        }
+
+        function renderLoans() {
+            const grid = document.getElementById('loans-grid');
+            let filtered = loans;
+            
+            if(loanFilter === 'pago') filtered = loans.filter(l => l.status === 'pago');
+            else if(loanFilter === 'atrasado') filtered = loans.filter(l => calculateLoan(l).isOverdue && l.status === 'pendente');
+            else filtered = loans.filter(l => l.status === 'pendente');
+
+            grid.innerHTML = filtered.map(l => {
+                const client = clients.find(c => c.id === l.clientId) || {name: 'Cliente Removido'};
+                const d = calculateLoan(l);
+                const stLabel = l.status === 'pago' ? 'PAGO' : (d.isOverdue ? 'ATRASADO' : 'PENDENTE');
+                const stClass = l.status === 'pago' ? 'bg-pago' : (d.isOverdue ? 'bg-atrasado' : 'bg-pendente');
+
+                return `
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                        ${d.isOverdue && l.status !== 'pago' ? '<div class="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rounded-bl-full flex items-start justify-end p-3"><i class="fas fa-exclamation-triangle text-rose-500 text-xs"></i></div>' : ''}
+                        <div class="flex justify-between items-start">
+                            <span class="status-badge ${stClass}">${stLabel}</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Venc: ${new Date(l.date).toLocaleDateString()}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-slate-900 truncate pr-4">${client.name}</h4>
+                            <p class="text-3xl font-black text-indigo-600 mt-1">${d.totalFull.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 py-3 border-y border-slate-50 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                            <div>CAPITAL: <span class="text-slate-900 block">${l.amount.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>
+                            <div>TAXA: <span class="text-slate-900 block">${l.rate}% ao ciclo</span></div>
+                        </div>
+                        ${l.status !== 'pago' ? `
+                            <button onclick="openPaymentModal('${l.id}')" class="w-full bg-slate-900 hover:bg-black text-white py-3 rounded-2xl font-black transition-all">Liquidar Ciclo</button>
+                        ` : `
+                            <div class="w-full py-3 bg-green-50 text-green-600 text-center rounded-2xl font-black text-xs uppercase tracking-widest"><i class="fas fa-check-circle mr-2"></i> Contrato Quitado</div>
+                        `}
+                        <button onclick="deleteLoan('${l.id}')" class="text-[10px] font-bold text-slate-300 hover:text-rose-500 transition-all uppercase">Remover do Sistema</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteLoan(id) {
+            if(!confirm("Remover este registro sem contabilizar no caixa?")) return;
+            loans = loans.filter(l => l.id !== id);
+            refreshAll();
+        }
+
+        // --- ACTIONS: PAYMENTS ---
+        function openPaymentModal(loanId) {
+            activeLoanId = loanId;
+            const l = loans.find(x => x.id === loanId);
+            const d = calculateLoan(l);
+            
+            document.getElementById('pay-total-due').innerText = d.totalFull.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('pay-base').innerText = l.amount.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('pay-interest').innerText = d.baseInterest.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('pay-fines').innerText = (d.fines + d.mora).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('pay-amortize').value = 0;
+            
+            calculatePaymentTotals();
+            toggleModal('modalPayment');
+        }
+
+        function calculatePaymentTotals() {
+            const l = loans.find(x => x.id === activeLoanId);
+            const d = calculateLoan(l);
+            const am = parseFloat(document.getElementById('pay-amortize').value) || 0;
+            
+            const renVal = d.totalRendimentos + am;
+            const quitVal = d.totalFull;
+
+            document.getElementById('btn-val-interest').innerText = renVal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('btn-val-total').innerText = quitVal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+        }
+
+        function processRenovacao() {
+            const l = loans.find(x => x.id === activeLoanId);
+            const d = calculateLoan(l);
+            const next = document.getElementById('pay-next-date').value;
+            const am = parseFloat(document.getElementById('pay-amortize').value) || 0;
+
+            if(!next) return showToast("Selecione a nova data de vencimento!");
+
+            // Histórico
+            addHistory(l.clientId, 'ENTRADA (RENOVAÇÃO)', d.totalRendimentos + am);
+            
+            l.amount -= am;
+            l.date = next;
+            
+            refreshAll();
+            toggleModal('modalPayment');
+            showToast("Contrato Renovado!");
+        }
+
+        function processQuitacao() {
+            const l = loans.find(x => x.id === activeLoanId);
+            const d = calculateLoan(l);
+            
+            addHistory(l.clientId, 'ENTRADA (QUITAÇÃO)', d.totalFull);
+            
+            l.status = 'pago';
+            refreshAll();
+            toggleModal('modalPayment');
+            showToast("Contrato Quitado com Sucesso!");
+        }
+
+        // --- HISTORY ENGINE ---
+        function addHistory(clientId, type, value) {
+            history.unshift({
+                id: Date.now().toString(),
+                clientId,
+                type,
+                value,
+                date: new Date().toISOString()
+            });
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = history.slice(0, 50).map(h => {
+                const c = clients.find(cl => cl.id === h.clientId) || {name: '---'};
+                const isEntry = h.type.includes('ENTRADA');
+                return `
+                    <tr class="border-b border-slate-50">
+                        <td class="px-6 py-3 text-slate-400">${new Date(h.date).toLocaleDateString()}</td>
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-1 rounded text-[9px] font-black ${isEntry ? 'bg-green-50 text-green-600' : 'bg-rose-50 text-rose-600'}">${h.type}</span>
+                        </td>
+                        <td class="px-6 py-3 text-slate-900">${c.name}</td>
+                        <td class="px-6 py-3 font-bold ${isEntry ? 'text-green-600' : 'text-rose-600'}">
+                            ${isEntry ? '+' : '-'} ${h.value.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- DASHBOARD CHARTS ---
+        function initCharts() {
+            const mainCtx = document.getElementById('mainChart').getContext('2d');
+            charts.main = new Chart(mainCtx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+                }
+            });
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            charts.status = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: { labels: ['Em Dia', 'Atraso'], datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderDashboard() {
+            const active = loans.filter(l => l.status === 'pendente');
+            
+            let capAtivo = 0;
+            let profitTotal = 0;
+            let overdueTotal = 0;
+
+            active.forEach(l => {
+                const d = calculateLoan(l);
+                capAtivo += l.amount;
+                if(d.isOverdue) overdueTotal += d.totalFull;
+            });
+
+            history.forEach(h => {
+                if(h.type.includes('ENTRADA')) {
+                    // Aproximadamente o lucro é o que entra menos o que era capital (simplificado)
+                    profitTotal += h.value; 
+                }
+            });
+
+            document.getElementById('dash-capital').innerText = capAtivo.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('dash-profit').innerText = history.filter(h => h.type.includes('ENTRADA')).reduce((s, h) => s + h.value, 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('dash-overdue').innerText = overdueTotal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            document.getElementById('dash-new-count').innerText = loans.filter(l => new Date(l.createdAt).getMonth() === new Date().getMonth()).length;
+
+            // Update Charts
+            const overdueCount = active.filter(l => calculateLoan(l).isOverdue).length;
+            const okCount = active.length - overdueCount;
+            
+            charts.status.data.datasets = [{
+                data: [okCount, overdueCount],
+                backgroundColor: ['#6366f1', '#f43f5e'],
+                borderWidth: 0
+            }];
+            charts.status.update();
+
+            // Timeline (últimos 7 registros de movimentação para o gráfico)
+            const lastMovs = [...history].reverse().slice(-10);
+            charts.main.data.labels = lastMovs.map(m => new Date(m.date).toLocaleDateString());
+            charts.main.data.datasets = [{
+                label: 'Fluxo',
+                data: lastMovs.map(m => m.type.includes('ENTRADA') ? m.value : -m.value),
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4
+            }];
+            charts.main.update();
+
+            renderRanking();
+        }
+
+        function renderRanking() {
+            const list = document.getElementById('ranking-list');
+            const data = clients.map(c => {
+                const totalDebt = loans.filter(l => l.clientId === c.id && l.status === 'pendente')
+                                      .reduce((s, l) => s + calculateLoan(l).totalFull, 0);
+                return { name: c.name, debt: totalDebt };
+            }).sort((a,b) => b.debt - a.debt).slice(0, 3);
+
+            list.innerHTML = data.map((r, i) => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="w-6 h-6 flex items-center justify-center bg-white rounded-full text-[10px] font-black text-slate-400">${i+1}</span>
+                        <span class="text-xs font-bold truncate">${r.name}</span>
+                    </div>
+                    <span class="text-xs font-black text-rose-500 whitespace-nowrap">${r.debt.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                </div>
+            `).join('');
         }
 
         async function renderUsers() {
-            if(currentUser?.role !== 'admin') return switchTab('dashboard');
+            if(currentUser?.role !== 'admin') return showSection('dashboard');
             try {
                 const data = await api('/api/users');
                 document.getElementById('users-table-body').innerHTML = data.users.map(u => `
-                    <tr>
-                        <td class="px-8 py-5 text-[11px] font-black text-slate-900 uppercase">${u.username}</td>
-                        <td class="px-8 py-5"><span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${u.role === 'admin' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}">${u.role}</span></td>
-                        <td class="px-8 py-5 text-right">
-                            ${u.role === 'admin' ? '<span class="text-[9px] font-black text-slate-300 uppercase">Protegido</span>' : `<button onclick="deleteAppUser('${u.id}')" class="text-rose-500 text-[9px] font-black uppercase">Excluir</button>`}
+                    <tr class="border-b last:border-0">
+                        <td class="px-6 py-4 font-bold text-slate-900">${u.username}</td>
+                        <td class="px-6 py-4"><span class="status-badge ${u.role === 'admin' ? 'bg-pago' : 'bg-pendente'}">${u.role}</span></td>
+                        <td class="px-6 py-4 text-right">
+                            ${u.role === 'admin' ? '<span class="text-[10px] font-black text-slate-300 uppercase">Protegido</span>' : `<button onclick="deleteAppUser('${u.id}')" class="text-[10px] font-bold text-rose-500 uppercase">Excluir</button>`}
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="3" class="py-12 text-center text-[10px] text-slate-400 uppercase font-black">Nenhum usuario</td></tr>';
+                `).join('') || '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 text-xs font-bold uppercase">Nenhum usuario</td></tr>';
             } catch(error) {
                 showToast(error.message);
             }
@@ -848,21 +901,42 @@
             }
         }
 
-        async function saveData() {
-            try {
-                await api('/api/state', {
-                    method: 'PUT',
-                    body: JSON.stringify({ clients, loans })
-                });
-            } catch(error) {
-                showToast(error.message);
-            }
+        // --- UTILS ---
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m;
+            t.classList.remove('opacity-0');
+            setTimeout(() => t.classList.add('opacity-0'), 3000);
         }
-        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
-        function exportData() { const blob = new Blob([JSON.stringify({clients, loans})], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup_fpro_${new Date().toLocaleDateString()}.json`; a.click(); }
-        function importData(e) { const reader = new FileReader(); reader.onload = async (ev) => { const d = JSON.parse(ev.target.result); clients = d.clients || []; loans = d.loans || []; await saveData(); location.reload(); }; reader.readAsText(e.target.files[0]); }
 
-        window.onload = () => initApp();
+        function exportData() {
+            const data = JSON.stringify({clients, loans, history}, null, 2);
+            const blob = new Blob([data], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `finance_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const d = JSON.parse(ev.target.result);
+                    if(d.clients && d.loans) {
+                        clients = d.clients;
+                        loans = d.loans;
+                        history = d.history || [];
+                        refreshAll();
+                        await saveData();
+                        showToast("Dados restaurados com sucesso!");
+                    }
+                } catch(e) { showToast("Erro ao importar ficheiro."); }
+            };
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>

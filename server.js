@@ -85,9 +85,11 @@ async function ensureDatabase() {
       id integer primary key,
       clients jsonb not null default '[]'::jsonb,
       loans jsonb not null default '[]'::jsonb,
+      history jsonb not null default '[]'::jsonb,
       updated_at timestamptz not null default now()
     )
   `);
+  await query(`alter table app_state add column if not exists history jsonb not null default '[]'::jsonb`);
   await query(`
     create table if not exists app_users (
       id bigserial primary key,
@@ -207,23 +209,25 @@ app.get('/api/session', requireAuth, (req, res) => {
 app.get('/api/state', requireAuth, async (_req, res) => {
   if (!pool) {
     const data = await localRead();
-    return res.json({ clients: data.clients || [], loans: data.loans || [] });
+    return res.json({ clients: data.clients || [], loans: data.loans || [], history: data.history || [] });
   }
-  const result = await query('select clients, loans from app_state where id = 1');
-  res.json(result.rows[0] || { clients: [], loans: [] });
+  const result = await query('select clients, loans, history from app_state where id = 1');
+  res.json(result.rows[0] || { clients: [], loans: [], history: [] });
 });
 
 app.put('/api/state', requireAuth, async (req, res) => {
   const clients = Array.isArray(req.body.clients) ? req.body.clients : [];
   const loans = Array.isArray(req.body.loans) ? req.body.loans : [];
+  const history = Array.isArray(req.body.history) ? req.body.history : [];
   if (!pool) {
     const data = await localRead();
-    await localWrite({ ...data, clients, loans });
+    await localWrite({ ...data, clients, loans, history });
     return res.json({ ok: true });
   }
-  await query('update app_state set clients = $1, loans = $2, updated_at = now() where id = 1', [
+  await query('update app_state set clients = $1, loans = $2, history = $3, updated_at = now() where id = 1', [
     JSON.stringify(clients),
-    JSON.stringify(loans)
+    JSON.stringify(loans),
+    JSON.stringify(history)
   ]);
   res.json({ ok: true });
 });
