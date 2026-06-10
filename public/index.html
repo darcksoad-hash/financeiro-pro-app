@@ -166,7 +166,7 @@
                             <p class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-tight">Projeção Atrasos</p>
                             <h3 id="dash-overdue" class="text-2xl font-black text-rose-600">R$ 0,00</h3>
                             <div class="mt-4 flex items-center gap-1 text-[10px] font-bold text-rose-500">
-                                <i class="fas fa-clock"></i> Pendente + Multas
+                                <i class="fas fa-clock"></i> Pendente + Atraso
                             </div>
                         </div>
                         <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
@@ -320,6 +320,10 @@
                     <input type="text" id="client-phone" placeholder="Ex: 11999999999" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
                 </div>
                 <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Juros apos vencimento (%)</label>
+                    <input type="number" step="0.01" min="0" id="client-overdue-rate" value="0" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                </div>
+                <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
                     <textarea id="client-address" rows="3" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none resize-none" placeholder="Rua, Número, Complemento, Bairro..."></textarea>
                 </div>
@@ -380,7 +384,7 @@
                 <div class="grid grid-cols-3 gap-2 text-[10px] font-bold uppercase text-indigo-400">
                     <div>Capital: <span id="pay-base" class="text-slate-900 block mt-1"></span></div>
                     <div>Juros: <span id="pay-interest" class="text-slate-900 block mt-1"></span></div>
-                    <div>Multas: <span id="pay-fines" class="text-rose-500 block mt-1"></span></div>
+                    <div>Atraso: <span id="pay-fines" class="text-rose-500 block mt-1"></span></div>
                 </div>
             </div>
 
@@ -572,34 +576,40 @@
             const today = new Date();
             const dueDate = new Date(loan.date);
             const isOverdue = today > dueDate && loan.status !== 'pago';
+            const client = clients.find(c => c.id === loan.clientId) || {};
+            const overdueRate = parseFloat(client.overdueRate) || 0;
             
-            let fines = 0;
+            let overdueInterest = 0;
             let mora = 0;
             let daysLate = 0;
+            const baseInterest = loan.amount * (loan.rate / 100);
 
             if (isOverdue) {
                 const diffTime = Math.abs(today - dueDate);
                 daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const cycleInterest = loan.amount * (loan.rate / 100);
-                fines = (loan.amount + cycleInterest) * 0.10; // 10% multa fixa
                 mora = daysLate * loan.mora;
+                overdueInterest = (loan.amount + baseInterest + mora) * (overdueRate / 100);
             }
 
-            const baseInterest = loan.amount * (loan.rate / 100);
-            const totalRendimentos = baseInterest + fines + mora;
+            const totalRendimentos = baseInterest + mora + overdueInterest;
             const totalFull = loan.amount + totalRendimentos;
 
-            return { isOverdue, daysLate, fines, mora, baseInterest, totalRendimentos, totalFull };
+            return { isOverdue, daysLate, fines: overdueInterest, overdueInterest, mora, overdueRate, baseInterest, totalRendimentos, totalFull };
         }
 
         // --- ACTIONS: CLIENTS ---
         function openClientModal(id = null) {
-            const fields = ['client-id', 'client-name', 'client-cpf', 'client-phone', 'client-address'];
             if(id) {
                 const c = clients.find(cl => cl.id === id);
-                fields.forEach(f => document.getElementById(f).value = c[f.split('-')[1]] || '');
+                document.getElementById('client-id').value = c.id || '';
+                document.getElementById('client-name').value = c.name || '';
+                document.getElementById('client-cpf').value = c.cpf || '';
+                document.getElementById('client-phone').value = c.phone || '';
+                document.getElementById('client-overdue-rate').value = parseFloat(c.overdueRate) || 0;
+                document.getElementById('client-address').value = c.address || '';
             } else {
-                fields.forEach(f => document.getElementById(f).value = '');
+                ['client-id', 'client-name', 'client-cpf', 'client-phone', 'client-address'].forEach(f => document.getElementById(f).value = '');
+                document.getElementById('client-overdue-rate').value = 0;
             }
             toggleModal('modalClient');
         }
@@ -612,6 +622,7 @@
                 name: document.getElementById('client-name').value,
                 cpf: document.getElementById('client-cpf').value,
                 phone: document.getElementById('client-phone').value.replace(/\D/g, ''),
+                overdueRate: parseFloat(document.getElementById('client-overdue-rate').value) || 0,
                 address: document.getElementById('client-address').value
             };
             const idx = clients.findIndex(c => c.id === id);
@@ -630,6 +641,7 @@
                         <div class="font-bold text-slate-900">${c.name}</div>
                         <div class="text-[11px] font-bold text-indigo-500">${c.cpf}</div>
                         <div class="text-[10px] text-slate-400 font-medium uppercase mt-1">FONE: ${c.phone}</div>
+                        <div class="text-[10px] text-rose-500 font-bold uppercase mt-1">Juros pos-venc.: ${parseFloat(c.overdueRate) || 0}%</div>
                     </td>
                     <td class="px-6 py-4">
                         <p class="text-xs text-slate-500 max-w-xs leading-relaxed italic">"${c.address || 'Endereço não informado'}"</p>
