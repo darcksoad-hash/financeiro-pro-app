@@ -112,6 +112,11 @@ async function ensureDatabase() {
       'insert into app_users (username, password_hash, role) values ($1, $2, $3)',
       [adminUser, await bcrypt.hash(adminPassword, 12), 'admin']
     );
+  } else if (adminPassword) {
+    await query(
+      'update app_users set password_hash = $1, role = $2 where username = $3',
+      [await bcrypt.hash(adminPassword, 12), 'admin', adminUser]
+    );
   }
 }
 
