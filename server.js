@@ -28,6 +28,13 @@ app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+let databaseReady;
+
+function getDatabaseReady() {
+  if (!databaseReady) databaseReady = ensureDatabase();
+  return databaseReady;
+}
+
 function signUser(user) {
   return jwt.sign({ id: user.id, username: user.username, role: user.role }, jwtSecret, { expiresIn: '7d' });
 }
@@ -157,14 +164,77 @@ async function createUser(username, password, role = 'user') {
   await query('insert into app_users (username, password_hash, role) values ($1, $2, $3)', [username, passwordHash, cleanRole]);
 }
 
-async function deleteUser(id) {
+async function updateUser(id, { username, password, role }) {
+  const cleanRole = role === 'admin' ? 'admin' : 'user';
   if (!pool) {
     const data = await localRead();
-    data.users = data.users.filter((u) => String(u.id) !== String(id) || u.role === 'admin');
+    const user = data.users.find((u) => String(u.id) === String(id));
+    if (!user) return;
+    user.username = username;
+    user.role = cleanRole;
+    if (password) user.passwordHash = await bcrypt.hash(password, 12);
     await localWrite(data);
     return;
   }
-  await query("delete from app_users where id = $1 and role <> 'admin'", [id]);
+  if (password) {
+    await query(
+      'update app_users set username = $1, role = $2, password_hash = $3 where id = $4',
+      [username, cleanRole, await bcrypt.hash(password, 12), id]
+    );
+  } else {
+    await query('update app_users set username = $1, role = $2 where id = $3', [username, cleanRole, id]);
+  }
+}
+
+async function countAdmins(exceptId = null) {
+  if (!pool) {
+    const data = await localRead();
+    return data.users.filter((u) => u.role === 'admin' && String(u.id) !== String(exceptId)).length;
+  }
+  const result = await query('select count(*)::int as total from app_users where role = $1 and id <> $2', [
+    'admin',
+    exceptId || 0
+  ]);
+  return result.rows[0]?.total || 0;
+}
+
+async function deleteUser(id, requesterId) {
+  if (String(id) === String(requesterId)) {
+    const error = new Error('Voce nao pode excluir o usuario logado');
+    error.status = 400;
+    throw error;
+  }
+  if (!pool) {
+    const data = await localRead();
+    const user = data.users.find((u) => String(u.id) === String(id));
+    if (user?.role === 'admin' && (await countAdmins(id)) === 0) {
+      const error = new Error('Mantenha pelo menos um admin');
+      error.status = 400;
+      throw error;
+    }
+    data.users = data.users.filter((u) => String(u.id) !== String(id));
+    await localWrite(data);
+    return;
+  }
+  const user = await query('select role from app_users where id = $1', [id]);
+  if (user.rows[0]?.role === 'admin' && (await countAdmins(id)) === 0) {
+    const error = new Error('Mantenha pelo menos um admin');
+    error.status = 400;
+    throw error;
+  }
+  await query('delete from app_users where id = $1', [id]);
+}
+
+async function changePassword(id, password) {
+  const passwordHash = await bcrypt.hash(password, 12);
+  if (!pool) {
+    const data = await localRead();
+    const user = data.users.find((u) => String(u.id) === String(id));
+    if (user) user.passwordHash = passwordHash;
+    await localWrite(data);
+    return;
+  }
+  await query('update app_users set password_hash = $1 where id = $2', [passwordHash, id]);
 }
 
 function requireAuth(req, res, next) {
@@ -180,6 +250,16 @@ function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
   next();
 }
+
+app.use(async (_req, res, next) => {
+  try {
+    await getDatabaseReady();
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao preparar o banco de dados' });
+  }
+});
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
@@ -251,8 +331,37 @@ app.post('/api/users', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const password = String(req.body?.password || '');
+  const role = String(req.body?.role || 'user');
+  if (!username) return res.status(400).json({ error: 'Informe o usuario' });
+  if (password && password.length < 8) {
+    return res.status(400).json({ error: 'Senha deve ter pelo menos 8 caracteres' });
+  }
+  try {
+    await updateUser(req.params.id, { username, password: password || null, role });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message || 'Erro ao atualizar usuario' });
+  }
+});
+
 app.delete('/api/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  await deleteUser(req.params.id);
+  try {
+    await deleteUser(req.params.id, req.user.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message || 'Erro ao excluir usuario' });
+  }
+});
+
+app.patch('/api/me/password', requireAuth, async (req, res) => {
+  const password = String(req.body?.password || '');
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Senha deve ter pelo menos 8 caracteres' });
+  }
+  await changePassword(req.user.id, password);
   res.json({ ok: true });
 });
 
@@ -260,9 +369,13 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-ensureDatabase()
-  .then(() => app.listen(port, () => console.log(`Financeiro Pro running on port ${port}`)))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+if (!process.env.VERCEL) {
+  getDatabaseReady()
+    .then(() => app.listen(port, () => console.log(`Financeiro Pro running on port ${port}`)))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}
+
+export default app;

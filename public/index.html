@@ -140,6 +140,7 @@
                     <div class="text-right hidden sm:block">
                         <p class="text-[10px] font-bold text-slate-400 uppercase">Status do Sistema</p>
                         <p class="text-xs font-bold text-green-500">Sincronizado na Nuvem</p>
+                        <p id="current-user-label" class="text-[10px] font-bold text-slate-400 uppercase mt-1">Usuario: ---</p>
                     </div>
                 </div>
             </header>
@@ -228,11 +229,17 @@
 
                 <!-- Seção Empréstimos -->
                 <section id="section-loans" class="hidden space-y-6">
-                    <div class="flex flex-col md:flex-row justify-between gap-4">
-                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
-                            <button onclick="setLoanFilter('all')" class="loan-filter-btn active px-6 py-2 rounded-xl text-xs font-bold transition-all bg-white shadow-sm text-indigo-600">Todos</button>
-                            <button onclick="setLoanFilter('atrasado')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Atrasados</button>
-                            <button onclick="setLoanFilter('pago')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Liquidados</button>
+                    <div class="flex flex-col xl:flex-row justify-between gap-4">
+                        <div class="flex flex-col md:flex-row gap-3">
+                            <div class="relative max-w-md w-full">
+                                <i class="fas fa-search absolute left-4 top-4 text-slate-300"></i>
+                                <input type="text" id="search-loans" oninput="renderLoans()" placeholder="Buscar por cliente, valor ou vencimento..." class="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 ring-indigo-100 transition-all">
+                            </div>
+                            <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl overflow-x-auto">
+                                <button onclick="setLoanFilter('all')" class="loan-filter-btn active px-6 py-2 rounded-xl text-xs font-bold transition-all bg-white shadow-sm text-indigo-600">Todos</button>
+                                <button onclick="setLoanFilter('atrasado')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Atrasados</button>
+                                <button onclick="setLoanFilter('pago')" class="loan-filter-btn px-6 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:bg-white/50">Liquidados</button>
+                            </div>
                         </div>
                         <button onclick="openLoanModal()" class="bg-slate-900 hover:bg-black text-white px-8 py-3 rounded-2xl font-bold transition-all">
                             Lançar Novo Contrato
@@ -261,7 +268,9 @@
                 <section id="section-users" class="hidden space-y-6">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                            <h4 class="font-bold text-slate-900 mb-6">Novo Usuario</h4>
+                            <h4 id="user-form-title" class="font-bold text-slate-900 mb-2">Novo Usuario</h4>
+                            <p id="logged-user-card" class="text-xs font-bold text-indigo-500 uppercase mb-6">Conectado: ---</p>
+                            <input type="hidden" id="u-id">
                             <div class="space-y-4">
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Usuario</label>
@@ -269,7 +278,7 @@
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Senha</label>
-                                    <input type="password" id="u-pass" autocomplete="new-password" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                                    <input type="password" id="u-pass" autocomplete="new-password" placeholder="Preencha para criar ou alterar" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Perfil</label>
@@ -278,7 +287,14 @@
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
-                                <button onclick="createAppUser()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">Cadastrar</button>
+                                <button onclick="saveAppUser()" id="btn-save-user" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">Cadastrar</button>
+                                <button onclick="resetUserForm()" class="w-full py-3 bg-slate-100 text-slate-500 rounded-2xl font-bold">Limpar</button>
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                <h4 class="font-bold text-slate-900">Alterar minha senha</h4>
+                                <input type="password" id="my-new-pass" autocomplete="new-password" placeholder="Nova senha" class="w-full px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white outline-none">
+                                <button onclick="changeMyPassword()" class="w-full py-3 bg-indigo-600 text-white rounded-2xl font-black">Alterar Senha</button>
                             </div>
                         </div>
                         <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
@@ -519,6 +535,8 @@
             history = state.history || [];
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('appShell').classList.remove('hidden');
+            document.getElementById('current-user-label').innerText = `Usuario: ${currentUser?.username || '---'}`;
+            document.getElementById('logged-user-card').innerText = `Conectado: ${currentUser?.username || '---'}`;
             document.getElementById('btn-users').classList.toggle('hidden', currentUser?.role !== 'admin');
             document.getElementById('mobile-users-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
             document.getElementById('mobileNav').classList.toggle('grid-cols-5', currentUser?.role === 'admin');
@@ -635,7 +653,10 @@
         function renderClients() {
             const term = document.getElementById('search-clients').value.toLowerCase();
             const tbody = document.getElementById('clients-table-body');
-            tbody.innerHTML = clients.filter(c => c.name.toLowerCase().includes(term) || c.cpf.includes(term) || c.phone.includes(term)).map(c => `
+            tbody.innerHTML = clients.filter(c => {
+                const haystack = `${c.name || ''} ${c.cpf || ''} ${c.phone || ''} ${c.address || ''} ${c.overdueRate || ''}`.toLowerCase();
+                return haystack.includes(term);
+            }).map(c => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td class="px-6 py-4">
                         <div class="font-bold text-slate-900">${c.name}</div>
@@ -707,17 +728,27 @@
                 b.classList.remove('active', 'bg-white', 'shadow-sm', 'text-indigo-600');
                 b.classList.add('text-slate-500');
             });
-            event.target.classList.add('active', 'bg-white', 'shadow-sm', 'text-indigo-600');
+            if(event?.target) event.target.classList.add('active', 'bg-white', 'shadow-sm', 'text-indigo-600');
             renderLoans();
         }
 
         function renderLoans() {
             const grid = document.getElementById('loans-grid');
+            const term = (document.getElementById('search-loans')?.value || '').toLowerCase();
             let filtered = loans;
             
             if(loanFilter === 'pago') filtered = loans.filter(l => l.status === 'pago');
             else if(loanFilter === 'atrasado') filtered = loans.filter(l => calculateLoan(l).isOverdue && l.status === 'pendente');
             else filtered = loans.filter(l => l.status === 'pendente');
+
+            if(term) {
+                filtered = filtered.filter(l => {
+                    const client = clients.find(c => c.id === l.clientId) || {};
+                    const d = calculateLoan(l);
+                    const haystack = `${client.name || ''} ${client.cpf || ''} ${client.phone || ''} ${l.amount} ${l.rate} ${l.mora} ${l.date} ${l.status} ${d.totalFull}`.toLowerCase();
+                    return haystack.includes(term);
+                });
+            }
 
             grid.innerHTML = filtered.map(l => {
                 const client = clients.find(c => c.id === l.clientId) || {name: 'Cliente Removido'};
@@ -748,7 +779,7 @@
                         <button onclick="deleteLoan('${l.id}')" class="text-[10px] font-bold text-slate-300 hover:text-rose-500 transition-all uppercase">Remover do Sistema</button>
                     </div>
                 `;
-            }).join('');
+            }).join('') || '<div class="col-span-full bg-white p-10 rounded-3xl border border-slate-100 text-center text-xs font-bold text-slate-400 uppercase">Nenhum contrato encontrado</div>';
         }
 
         function deleteLoan(id) {
@@ -948,8 +979,9 @@
                     <tr class="border-b last:border-0">
                         <td class="px-6 py-4 font-bold text-slate-900">${u.username}</td>
                         <td class="px-6 py-4"><span class="status-badge ${u.role === 'admin' ? 'bg-pago' : 'bg-pendente'}">${u.role}</span></td>
-                        <td class="px-6 py-4 text-right">
-                            ${u.role === 'admin' ? '<span class="text-[10px] font-black text-slate-300 uppercase">Protegido</span>' : `<button onclick="deleteAppUser('${u.id}')" class="text-[10px] font-bold text-rose-500 uppercase">Excluir</button>`}
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <button onclick="editAppUser('${u.id}', '${String(u.username).replace(/'/g, "\\'")}', '${u.role}')" class="text-[10px] font-bold text-indigo-600 uppercase mr-3">Editar</button>
+                            <button onclick="deleteAppUser('${u.id}')" class="text-[10px] font-bold text-rose-500 uppercase">Excluir</button>
                         </td>
                     </tr>
                 `).join('') || '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 text-xs font-bold uppercase">Nenhum usuario</td></tr>';
@@ -958,30 +990,65 @@
             }
         }
 
-        async function createAppUser() {
+        function resetUserForm() {
+            document.getElementById('u-id').value = '';
+            document.getElementById('u-name').value = '';
+            document.getElementById('u-pass').value = '';
+            document.getElementById('u-role').value = 'user';
+            document.getElementById('user-form-title').innerText = 'Novo Usuario';
+            document.getElementById('btn-save-user').innerText = 'Cadastrar';
+        }
+
+        function editAppUser(id, username, role) {
+            document.getElementById('u-id').value = id;
+            document.getElementById('u-name').value = username;
+            document.getElementById('u-pass').value = '';
+            document.getElementById('u-role').value = role;
+            document.getElementById('user-form-title').innerText = 'Editar Usuario';
+            document.getElementById('btn-save-user').innerText = 'Salvar Alteracoes';
+        }
+
+        async function saveAppUser() {
             try {
-                await api('/api/users', {
-                    method: 'POST',
+                const id = document.getElementById('u-id').value;
+                const payload = {
+                    username: document.getElementById('u-name').value,
+                    password: document.getElementById('u-pass').value,
+                    role: document.getElementById('u-role').value
+                };
+                await api(id ? `/api/users/${id}` : '/api/users', {
+                    method: id ? 'PATCH' : 'POST',
+                    body: JSON.stringify(payload)
+                });
+                resetUserForm();
+                await renderUsers();
+                showToast(id ? 'Usuario atualizado!' : 'Usuario cadastrado!');
+            } catch(error) {
+                showToast(error.message);
+            }
+        }
+
+        async function changeMyPassword() {
+            try {
+                await api('/api/me/password', {
+                    method: 'PATCH',
                     body: JSON.stringify({
-                        username: document.getElementById('u-name').value,
-                        password: document.getElementById('u-pass').value,
-                        role: document.getElementById('u-role').value
+                        password: document.getElementById('my-new-pass').value
                     })
                 });
-                document.getElementById('u-name').value = '';
-                document.getElementById('u-pass').value = '';
-                document.getElementById('u-role').value = 'user';
-                await renderUsers();
-                showToast('Usuario cadastrado!');
+                document.getElementById('my-new-pass').value = '';
+                showToast('Senha alterada!');
             } catch(error) {
                 showToast(error.message);
             }
         }
 
         async function deleteAppUser(id) {
+            if(!confirm('Excluir este usuario?')) return;
             try {
                 await api(`/api/users/${id}`, { method: 'DELETE' });
                 await renderUsers();
+                resetUserForm();
                 showToast('Usuario excluido!');
             } catch(error) {
                 showToast(error.message);
