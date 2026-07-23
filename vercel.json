@@ -1,9 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/index.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "api/index.js" }
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://refurbtech-api.tail21b388.ts.net/financeiro-api/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
   ]
 }

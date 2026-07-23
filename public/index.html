@@ -448,12 +448,13 @@
         let inactivityTimer = null;
         let logoutInProgress = false;
         const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
+        const API_BASE_PATH = location.pathname.startsWith('/financeiro-api') ? '/financeiro-api' : '';
 
         // --- CORE LOGIC ---
         window.onload = () => initApp();
 
         async function api(path, options = {}) {
-            const response = await fetch(path, {
+            const response = await fetch(`${API_BASE_PATH}${path}`, {
                 ...options,
                 headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
             });
@@ -483,7 +484,7 @@
             logoutInProgress = true;
             const { silent = false, keepalive = false } = options;
             try {
-                await fetch('/api/logout', {
+                await fetch(`${API_BASE_PATH}/api/logout`, {
                     method: 'POST',
                     keepalive,
                     headers: { 'Content-Type': 'application/json' }
