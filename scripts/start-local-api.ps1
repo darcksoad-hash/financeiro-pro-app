@@ -25,4 +25,7 @@ $env:NODE_ENV = "production"
 Remove-Item Env:\VERCEL -ErrorAction SilentlyContinue
 
 Set-Location $ProjectRoot
-node server.js
+$LogDir = Join-Path $ProjectRoot "logs"
+New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
+$ErrorActionPreference = "Continue"
+node server.js *>> (Join-Path $LogDir "financeiro-local-api.log")
