@@ -20,7 +20,7 @@ Get-CimInstance Win32_Process |
 Remove-Item $OutLog, $ErrLog -ErrorAction SilentlyContinue
 
 Start-Process -FilePath $Cloudflared `
-  -ArgumentList @("tunnel", "--url", "http://127.0.0.1:3032", "--no-autoupdate") `
+  -ArgumentList @("tunnel", "--url", "http://127.0.0.1:3032", "--protocol", "http2", "--no-autoupdate") `
   -WindowStyle Hidden `
   -RedirectStandardOutput $OutLog `
   -RedirectStandardError $ErrLog
