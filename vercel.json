@@ -2,12 +2,8 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://refurbtech-api.tail21b388.ts.net/financeiro-api/api/:path*"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ]
 }
