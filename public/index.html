@@ -353,8 +353,9 @@
 
     <div id="modalLoan" class="modal">
         <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden p-8 shadow-2xl">
-            <h3 class="text-2xl font-black mb-6 text-slate-900">Novo Contrato</h3>
+            <h3 id="loan-modal-title" class="text-2xl font-black mb-6 text-slate-900">Novo Contrato</h3>
             <form onsubmit="handleLoanSubmit(event)" class="space-y-4">
+                <input type="hidden" id="loan-id">
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Selecione o Cliente</label>
                     <select id="loan-client" required class="w-full px-4 py-3 rounded-xl border bg-slate-50 outline-none"></select>
@@ -379,7 +380,10 @@
                         <input type="date" id="loan-date" required class="w-full px-4 py-3 rounded-xl border bg-slate-50">
                     </div>
                 </div>
-                <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black mt-4">Ativar Contrato</button>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('modalLoan')" class="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-2xl transition-all">Cancelar</button>
+                    <button id="loan-submit-button" type="submit" class="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black">Ativar Contrato</button>
+                </div>
             </form>
         </div>
     </div>
@@ -673,8 +677,9 @@
                             <a href="https://wa.me/55${c.phone}" target="_blank" class="w-9 h-9 flex items-center justify-center bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
-                            <button onclick="openClientModal('${c.id}')" class="w-9 h-9 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                            <button onclick="openClientModal('${c.id}')" class="h-9 px-3 flex items-center justify-center gap-2 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm text-[10px] font-black uppercase">
                                 <i class="fas fa-edit"></i>
+                                Editar
                             </button>
                             <button onclick="deleteClient('${c.id}')" class="w-9 h-9 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm">
                                 <i class="fas fa-trash"></i>
@@ -694,33 +699,60 @@
         }
 
         // --- ACTIONS: LOANS ---
-        function openLoanModal() {
+        function openLoanModal(id = null) {
             const select = document.getElementById('loan-client');
             select.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
             if(!clients.length) return showToast("Cadastre pelo menos um cliente primeiro!");
+            const loan = id ? loans.find(l => l.id === id) : null;
+
+            document.getElementById('loan-id').value = loan?.id || '';
+            document.getElementById('loan-modal-title').innerText = loan ? 'Editar Contrato' : 'Novo Contrato';
+            document.getElementById('loan-submit-button').innerText = loan ? 'Salvar Contrato' : 'Ativar Contrato';
+
+            if(loan) {
+                document.getElementById('loan-client').value = loan.clientId || '';
+                document.getElementById('loan-amount').value = loan.amount || 0;
+                document.getElementById('loan-rate').value = loan.rate || 0;
+                document.getElementById('loan-mora').value = loan.mora || 0;
+                document.getElementById('loan-date').value = loan.date || '';
+            } else {
+                document.getElementById('loan-client').value = clients[0]?.id || '';
+                document.getElementById('loan-amount').value = '';
+                document.getElementById('loan-rate').value = 30;
+                document.getElementById('loan-mora').value = '5.00';
+                document.getElementById('loan-date').value = '';
+            }
             toggleModal('modalLoan');
         }
 
         function handleLoanSubmit(e) {
             e.preventDefault();
+            const id = document.getElementById('loan-id').value;
             const amount = parseFloat(document.getElementById('loan-amount').value);
+            const existing = id ? loans.find(l => l.id === id) : null;
             const loan = {
-                id: Date.now().toString(),
+                ...(existing || {}),
+                id: id || Date.now().toString(),
                 clientId: document.getElementById('loan-client').value,
                 amount: amount,
                 rate: parseFloat(document.getElementById('loan-rate').value),
                 mora: parseFloat(document.getElementById('loan-mora').value),
                 date: document.getElementById('loan-date').value,
-                status: 'pendente',
-                createdAt: new Date().toISOString()
+                status: existing?.status || 'pendente',
+                createdAt: existing?.createdAt || new Date().toISOString()
             };
             
-            loans.push(loan);
-            addHistory(loan.clientId, 'SAÍDA (EMPRÉSTIMO)', amount);
+            if(existing) {
+                const idx = loans.findIndex(l => l.id === id);
+                loans[idx] = loan;
+            } else {
+                loans.push(loan);
+                addHistory(loan.clientId, 'SAÍDA (EMPRÉSTIMO)', amount);
+            }
             
             refreshAll();
             toggleModal('modalLoan');
-            showToast("Novo contrato ativado com sucesso!");
+            showToast(existing ? "Contrato atualizado com sucesso!" : "Novo contrato ativado com sucesso!");
         }
 
         function setLoanFilter(f) {
@@ -777,7 +809,12 @@
                         ` : `
                             <div class="w-full py-3 bg-green-50 text-green-600 text-center rounded-2xl font-black text-xs uppercase tracking-widest"><i class="fas fa-check-circle mr-2"></i> Contrato Quitado</div>
                         `}
-                        <button onclick="deleteLoan('${l.id}')" class="text-[10px] font-bold text-slate-300 hover:text-rose-500 transition-all uppercase">Remover do Sistema</button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openLoanModal('${l.id}')" class="py-2 bg-slate-50 text-slate-500 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-black uppercase">
+                                <i class="fas fa-edit mr-1"></i> Editar
+                            </button>
+                            <button onclick="deleteLoan('${l.id}')" class="py-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all text-[10px] font-black uppercase">Remover</button>
+                        </div>
                     </div>
                 `;
             }).join('') || '<div class="col-span-full bg-white p-10 rounded-3xl border border-slate-100 text-center text-xs font-bold text-slate-400 uppercase">Nenhum contrato encontrado</div>';
