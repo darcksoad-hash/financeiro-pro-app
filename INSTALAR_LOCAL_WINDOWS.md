@@ -10,7 +10,16 @@ O instalador cria automaticamente:
 - os atalhos da Area de Trabalho;
 - a inicializacao junto com o Windows.
 
-## Como instalar
+## Como instalar com o instalador
+
+1. Instale o Node.js LTS no computador, se ainda nao tiver.
+2. Copie o arquivo `Financeiro-Pro-Setup.exe` para o computador.
+3. De dois cliques no arquivo e aguarde a instalacao terminar.
+4. Abra pelo atalho `Financeiro Pro` criado na Area de Trabalho.
+
+Se o Windows bloquear o arquivo copiado, clique em `Mais informacoes` e depois em `Executar assim mesmo`.
+
+## Como instalar manualmente
 
 1. Instale o Node.js LTS no computador, se ainda nao tiver.
 2. Copie a pasta `financeiro-pro-app` para o computador.
@@ -70,3 +79,17 @@ data.local.json
 ```
 
 Cada computador instalado tera o proprio arquivo e os proprios dados. Sem `DATABASE_URL`, nada e enviado para Neon, Render ou Vercel.
+
+## Como gerar os arquivos de instalacao
+
+Para gerar um novo instalador `.exe` na Area de Trabalho:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows-installer.ps1
+```
+
+Para gerar somente o ZIP:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-local-installer-package.ps1
+```
