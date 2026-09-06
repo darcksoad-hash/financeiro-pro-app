@@ -30,11 +30,11 @@ $runnerPath = Join-Path $StageRoot "Financeiro-Pro-Setup.cmd"
 $sedPath = Join-Path $StageRoot "Financeiro-Pro-Setup.sed"
 
 $payload = @"
-`$ErrorActionPreference = "Stop"
-
 param(
   [string]`$InstallDir = (Join-Path `$env:LOCALAPPDATA "FinanceiroPro")
 )
+
+`$ErrorActionPreference = "Stop"
 
 function Assert-Command([string]`$CommandName, [string]`$FriendlyName) {
   if (-not (Get-Command `$CommandName -ErrorAction SilentlyContinue)) {

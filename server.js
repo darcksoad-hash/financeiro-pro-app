@@ -16,6 +16,9 @@ const jwtSecret = process.env.JWT_SECRET || 'local-development-secret-change-me'
 const adminUser = process.env.ADMIN_USER || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD;
 const localDataFile = path.join(__dirname, 'data.local.json');
+const useSecureCookie = process.env.COOKIE_SECURE
+  ? process.env.COOKIE_SECURE === 'true'
+  : Boolean(process.env.DATABASE_URL && process.env.NODE_ENV === 'production');
 
 const pool = process.env.DATABASE_URL
   ? new Pool({
@@ -271,7 +274,7 @@ app.post('/api/login', async (req, res) => {
   res.cookie('financeiro_token', signUser(user), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: useSecureCookie,
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
   res.json({ user: publicUser(user) });

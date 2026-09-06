@@ -35,7 +35,12 @@ Assert-Command "npm.cmd" "npm"
 
 if (-not (Test-Path $EnvFile)) {
   $secretBytes = New-Object byte[] 32
-  [System.Security.Cryptography.RandomNumberGenerator]::Fill($secretBytes)
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $rng.GetBytes($secretBytes)
+  } finally {
+    $rng.Dispose()
+  }
   $jwtSecret = [Convert]::ToBase64String($secretBytes)
 
   Set-Content -Path $EnvFile -Encoding ASCII -Value @(
