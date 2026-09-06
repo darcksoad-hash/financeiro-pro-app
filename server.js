@@ -15,7 +15,7 @@ const port = process.env.PORT || 3000;
 const jwtSecret = process.env.JWT_SECRET || 'local-development-secret-change-me';
 const adminUser = process.env.ADMIN_USER || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD;
-const localDataFile = path.join(__dirname, 'data.local.json');
+const localDataFile = process.env.LOCAL_DATA_FILE || path.join(__dirname, 'data.local.json');
 const useSecureCookie = process.env.COOKIE_SECURE
   ? process.env.COOKIE_SECURE === 'true'
   : Boolean(process.env.DATABASE_URL && process.env.NODE_ENV === 'production');
