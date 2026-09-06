@@ -13,11 +13,13 @@ O instalador cria automaticamente:
 ## Como instalar com o instalador
 
 1. Instale o Node.js LTS no computador, se ainda nao tiver.
-2. Copie o arquivo `Financeiro-Pro-Setup.exe` para o computador.
+2. Copie o arquivo `INSTALAR-FINANCEIRO-PRO.cmd` para o computador.
 3. De dois cliques no arquivo e aguarde a instalacao terminar.
 4. Abra pelo atalho `Financeiro Pro` criado na Area de Trabalho.
 
-Se o Windows bloquear o arquivo copiado, clique em `Mais informacoes` e depois em `Executar assim mesmo`.
+Esse instalador mantem a tela aberta no final. Se aparecer algum erro, copie a mensagem ou tire uma foto.
+
+Tambem existe o arquivo `Financeiro-Pro-Setup.exe`, mas alguns Windows podem fechar a tela rapido demais quando ha bloqueio ou erro local.
 
 ## Como instalar manualmente
 

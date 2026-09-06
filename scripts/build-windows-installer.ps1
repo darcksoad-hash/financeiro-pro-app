@@ -11,6 +11,7 @@ $PackageZip = Join-Path $Desktop "Financeiro-Pro-Instalador-Local.zip"
 $InstallerExe = Join-Path $Desktop "Financeiro-Pro-Setup.exe"
 $InstallerCmd = Join-Path $Desktop "Financeiro-Pro-Setup.cmd"
 $InstallerPs1 = Join-Path $Desktop "Financeiro-Pro-Setup.ps1"
+$InstallerSafeCmd = Join-Path $Desktop "INSTALAR-FINANCEIRO-PRO.cmd"
 $StageRoot = Join-Path $env:TEMP "financeiro-pro-single-installer"
 
 Write-Host "Preparando pacote local do Financeiro Pro..."
@@ -27,6 +28,7 @@ $zipBytes = [IO.File]::ReadAllBytes($PackageZip)
 $zipBase64 = [Convert]::ToBase64String($zipBytes)
 $payloadPath = Join-Path $StageRoot "Financeiro-Pro-Setup.ps1"
 $runnerPath = Join-Path $StageRoot "Financeiro-Pro-Setup.cmd"
+$safeRunnerPath = Join-Path $StageRoot "INSTALAR-FINANCEIRO-PRO.cmd"
 $sedPath = Join-Path $StageRoot "Financeiro-Pro-Setup.sed"
 
 $payload = @"
@@ -91,12 +93,35 @@ Set-Content -Path $payloadPath -Encoding ASCII -Value $payload
 
 Set-Content -Path $runnerPath -Encoding ASCII -Value @(
   "@echo off",
+  "title Instalador Financeiro Pro",
+  "echo Instalando Financeiro Pro...",
   "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ""%~dp0Financeiro-Pro-Setup.ps1""",
+  "echo.",
+  "echo Se apareceu algum erro acima, tire uma foto ou copie a mensagem.",
+  "echo.",
   "pause"
+)
+
+$payloadScriptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($payload))
+Set-Content -Path $safeRunnerPath -Encoding ASCII -Value @(
+  "@echo off",
+  "title Instalador Financeiro Pro",
+  "set ""SELF=%~f0""",
+  "echo Instalando Financeiro Pro...",
+  "echo.",
+  "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ""`$marker='::PAYLOAD::'; `$self=`$env:SELF; `$content=Get-Content -Raw -LiteralPath `$self; `$idx=`$content.LastIndexOf(`$marker); if (`$idx -lt 0) { throw 'Pacote interno nao encontrado.' }; `$b64=`$content.Substring(`$idx + `$marker.Length).Trim(); `$script=Join-Path `$env:TEMP ('financeiro-pro-setup-' + [guid]::NewGuid().ToString('N') + '.ps1'); [IO.File]::WriteAllBytes(`$script, [Convert]::FromBase64String(`$b64)); & powershell.exe -NoProfile -ExecutionPolicy Bypass -File `$script""",
+  "echo.",
+  "echo Se apareceu algum erro acima, tire uma foto ou copie a mensagem.",
+  "echo.",
+  "pause",
+  "exit /b",
+  "::PAYLOAD::",
+  $payloadScriptBase64
 )
 
 Copy-Item $payloadPath $InstallerPs1 -Force
 Copy-Item $runnerPath $InstallerCmd -Force
+Copy-Item $safeRunnerPath $InstallerSafeCmd -Force
 
 $iexpress = Join-Path $env:SystemRoot "System32\iexpress.exe"
 if (-not (Test-Path $iexpress)) {
@@ -124,19 +149,21 @@ DisplayLicense=
 FinishMessage=Instalacao concluida.
 TargetName=$InstallerExe
 FriendlyName=Financeiro Pro Setup
-AppLaunched=Financeiro-Pro-Setup.cmd
+AppLaunched=cmd.exe /k Financeiro-Pro-Setup.cmd
 PostInstallCmd=<None>
-AdminQuietInstCmd=Financeiro-Pro-Setup.cmd
-UserQuietInstCmd=Financeiro-Pro-Setup.cmd
+AdminQuietInstCmd=cmd.exe /k Financeiro-Pro-Setup.cmd
+UserQuietInstCmd=cmd.exe /k Financeiro-Pro-Setup.cmd
 SourceFiles=SourceFiles
 [SourceFiles]
 SourceFiles0=$escapedStageRoot
 [SourceFiles0]
 %FILE0%=
 %FILE1%=
+%FILE2%=
 [Strings]
 FILE0="Financeiro-Pro-Setup.cmd"
 FILE1="Financeiro-Pro-Setup.ps1"
+FILE2="INSTALAR-FINANCEIRO-PRO.cmd"
 "@
 
 Set-Content -Path $sedPath -Encoding ASCII -Value $sed
