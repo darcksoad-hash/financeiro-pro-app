@@ -8,11 +8,9 @@ if (-not $Desktop) {
 
 $PackageScript = Join-Path $PSScriptRoot "create-local-installer-package.ps1"
 $PackageZip = Join-Path $Desktop "Financeiro-Pro-Instalador-Local.zip"
-$InstallerExe = Join-Path $Desktop "Financeiro-Pro-Setup.exe"
-$InstallerCmd = Join-Path $Desktop "Financeiro-Pro-Setup.cmd"
-$InstallerPs1 = Join-Path $Desktop "Financeiro-Pro-Setup.ps1"
-$InstallerSafeCmd = Join-Path $Desktop "INSTALAR-FINANCEIRO-PRO.cmd"
-$StageRoot = Join-Path $env:TEMP "financeiro-pro-single-installer"
+$InstallerExe = Join-Path $Desktop "Financeiro-Pro-Instalador.exe"
+$StageRoot = Join-Path $env:TEMP "financeiro-pro-exe-installer"
+$SourcePath = Join-Path $StageRoot "FinanceiroProInstaller.cs"
 
 Write-Host "Preparando pacote local do Financeiro Pro..."
 & $PackageScript
@@ -24,161 +22,204 @@ if (-not (Test-Path $PackageZip)) {
 Remove-Item $StageRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $StageRoot -Force | Out-Null
 
-$zipBytes = [IO.File]::ReadAllBytes($PackageZip)
-$zipBase64 = [Convert]::ToBase64String($zipBytes)
-$payloadPath = Join-Path $StageRoot "Financeiro-Pro-Setup.ps1"
-$runnerPath = Join-Path $StageRoot "Financeiro-Pro-Setup.cmd"
-$safeRunnerPath = Join-Path $StageRoot "INSTALAR-FINANCEIRO-PRO.cmd"
-$sedPath = Join-Path $StageRoot "Financeiro-Pro-Setup.sed"
-
-$payload = @"
-param(
-  [string]`$InstallDir = (Join-Path `$env:LOCALAPPDATA "FinanceiroPro")
+$cscCandidates = @(
+  (Join-Path $env:SystemRoot "Microsoft.NET\Framework64\v4.0.30319\csc.exe"),
+  (Join-Path $env:SystemRoot "Microsoft.NET\Framework\v4.0.30319\csc.exe")
 )
+$csc = $cscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $csc) {
+  throw "Compilador do Windows nao encontrado para gerar o instalador .exe."
+}
 
-`$ErrorActionPreference = "Stop"
+function Remove-GeneratedDesktopFile([string]$FileName) {
+  $desktopCandidates = @(
+    $Desktop,
+    (Join-Path $env:USERPROFILE "Desktop"),
+    (Join-Path $env:USERPROFILE "OneDrive\Desktop")
+  ) | Where-Object { $_ } | Select-Object -Unique
 
-function Assert-Command([string]`$CommandName, [string]`$FriendlyName) {
-  if (-not (Get-Command `$CommandName -ErrorAction SilentlyContinue)) {
-    Write-Host ""
-    Write-Host "`$FriendlyName nao encontrado."
-    Write-Host "Instale o Node.js LTS e rode este instalador novamente:"
-    Write-Host "https://nodejs.org/"
-    Start-Process "https://nodejs.org/" -ErrorAction SilentlyContinue
-    throw "`$FriendlyName nao encontrado."
+  foreach ($desktopPath in $desktopCandidates) {
+    Remove-Item (Join-Path $desktopPath $FileName) -Force -ErrorAction SilentlyContinue
   }
 }
 
-Write-Host "Instalando Financeiro Pro neste computador..."
-Write-Host "Pasta local: `$InstallDir"
+$source = @'
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Reflection;
 
-Assert-Command "node.exe" "Node.js"
-Assert-Command "npm.cmd" "npm"
+class FinanceiroProInstaller
+{
+    static int Main()
+    {
+        Console.Title = "Instalador Financeiro Pro";
 
-New-Item -ItemType Directory -Path `$InstallDir -Force | Out-Null
+        try
+        {
+            string installDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FinanceiroPro"
+            );
 
-`$tempZip = Join-Path `$env:TEMP ("financeiro-pro-local-" + [Guid]::NewGuid().ToString("N") + ".zip")
-`$base64 = @'
-$zipBase64
+            Console.WriteLine("Instalando Financeiro Pro...");
+            Console.WriteLine("Pasta do programa: " + installDir);
+            Console.WriteLine();
+
+            RequireCommand("node.exe", "Node.js");
+            RequireCommand("npm.cmd", "npm");
+
+            Directory.CreateDirectory(installDir);
+
+            string extractRoot = Path.Combine(Path.GetTempPath(), "financeiro-pro-install-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(extractRoot);
+
+            try
+            {
+                ExtractPayload(extractRoot);
+                CopyDirectory(extractRoot, installDir);
+
+                string installScript = Path.Combine(installDir, "scripts", "install-local-server.ps1");
+                if (!File.Exists(installScript))
+                {
+                    throw new FileNotFoundException("Arquivo de instalacao nao encontrado.", installScript);
+                }
+
+                Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File \"" + installScript + "\"", installDir);
+
+                Console.WriteLine();
+                Console.WriteLine("Financeiro Pro instalado com sucesso.");
+                Console.WriteLine("Use o atalho Financeiro Pro na Area de Trabalho.");
+                Console.WriteLine("Usuario inicial: admin.financeiro");
+                Console.WriteLine("Senha inicial: FinanceiroLocal@2026");
+                Console.WriteLine();
+                Console.WriteLine("Pressione ENTER para fechar.");
+                Console.ReadLine();
+                return 0;
+            }
+            finally
+            {
+                try { Directory.Delete(extractRoot, true); } catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine();
+            Console.WriteLine("NAO FOI POSSIVEL INSTALAR.");
+            Console.WriteLine(ex.Message);
+            Console.WriteLine();
+            Console.WriteLine("Pressione ENTER para fechar.");
+            Console.ReadLine();
+            return 1;
+        }
+    }
+
+    static void RequireCommand(string command, string friendlyName)
+    {
+        int exitCode = RunHidden("where.exe", command);
+        if (exitCode != 0)
+        {
+            try { Process.Start(new ProcessStartInfo("https://nodejs.org/") { UseShellExecute = true }); } catch { }
+            throw new Exception(friendlyName + " nao encontrado. Instale o Node.js LTS e execute este instalador novamente.");
+        }
+    }
+
+    static int RunHidden(string fileName, string arguments)
+    {
+        ProcessStartInfo info = new ProcessStartInfo(fileName, arguments);
+        info.UseShellExecute = false;
+        info.CreateNoWindow = true;
+        Process process = Process.Start(info);
+        process.WaitForExit();
+        return process.ExitCode;
+    }
+
+    static void Run(string fileName, string arguments, string workingDirectory)
+    {
+        ProcessStartInfo info = new ProcessStartInfo(fileName, arguments);
+        info.WorkingDirectory = workingDirectory;
+        info.UseShellExecute = false;
+        Process process = Process.Start(info);
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new Exception("Instalacao interrompida. Codigo: " + process.ExitCode);
+        }
+    }
+
+    static void ExtractPayload(string destination)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string resourceName = null;
+        foreach (string name in assembly.GetManifestResourceNames())
+        {
+            if (name.EndsWith("SetupPayload.zip", StringComparison.OrdinalIgnoreCase))
+            {
+                resourceName = name;
+                break;
+            }
+        }
+
+        if (resourceName == null)
+        {
+            throw new Exception("Pacote interno do instalador nao encontrado.");
+        }
+
+        string zipPath = Path.Combine(Path.GetTempPath(), "financeiro-pro-payload-" + Guid.NewGuid().ToString("N") + ".zip");
+        try
+        {
+            using (Stream input = assembly.GetManifestResourceStream(resourceName))
+            using (FileStream output = File.Create(zipPath))
+            {
+                input.CopyTo(output);
+            }
+
+            ZipFile.ExtractToDirectory(zipPath, destination);
+        }
+        finally
+        {
+            try { File.Delete(zipPath); } catch { }
+        }
+    }
+
+    static void CopyDirectory(string sourceDir, string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+
+        foreach (string dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            string target = Path.Combine(targetDir, dir.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            Directory.CreateDirectory(target);
+        }
+
+        foreach (string file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            string relative = file.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string target = Path.Combine(targetDir, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(target));
+            File.Copy(file, target, true);
+        }
+    }
+}
 '@
 
-[IO.File]::WriteAllBytes(`$tempZip, [Convert]::FromBase64String(`$base64))
+Set-Content -Path $SourcePath -Encoding ASCII -Value $source
 
-`$extractRoot = Join-Path `$env:TEMP ("financeiro-pro-extract-" + [Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Path `$extractRoot -Force | Out-Null
-
-try {
-  Expand-Archive -Path `$tempZip -DestinationPath `$extractRoot -Force
-  Copy-Item -Path (Join-Path `$extractRoot "*") -Destination `$InstallDir -Recurse -Force
-
-  `$installScript = Join-Path `$InstallDir "scripts\install-local-server.ps1"
-  if (-not (Test-Path `$installScript)) {
-    throw "Arquivo de instalacao nao encontrado dentro do pacote."
-  }
-
-  & `$installScript
-
-  Write-Host ""
-  Write-Host "Financeiro Pro instalado com sucesso."
-  Write-Host "Abra pelo atalho Financeiro Pro na Area de Trabalho."
-  Write-Host "Usuario inicial: admin.financeiro"
-  Write-Host "Senha inicial: FinanceiroLocal@2026"
-} finally {
-  Remove-Item `$tempZip -Force -ErrorAction SilentlyContinue
-  Remove-Item `$extractRoot -Recurse -Force -ErrorAction SilentlyContinue
-}
-"@
-
-Set-Content -Path $payloadPath -Encoding ASCII -Value $payload
-
-Set-Content -Path $runnerPath -Encoding ASCII -Value @(
-  "@echo off",
-  "title Instalador Financeiro Pro",
-  "echo Instalando Financeiro Pro...",
-  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ""%~dp0Financeiro-Pro-Setup.ps1""",
-  "echo.",
-  "echo Se apareceu algum erro acima, tire uma foto ou copie a mensagem.",
-  "echo.",
-  "pause"
-)
-
-$payloadScriptBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($payload))
-Set-Content -Path $safeRunnerPath -Encoding ASCII -Value @(
-  "@echo off",
-  "title Instalador Financeiro Pro",
-  "set ""SELF=%~f0""",
-  "echo Instalando Financeiro Pro...",
-  "echo.",
-  "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ""`$marker='::PAYLOAD::'; `$self=`$env:SELF; `$content=Get-Content -Raw -LiteralPath `$self; `$idx=`$content.LastIndexOf(`$marker); if (`$idx -lt 0) { throw 'Pacote interno nao encontrado.' }; `$b64=`$content.Substring(`$idx + `$marker.Length).Trim(); `$script=Join-Path `$env:TEMP ('financeiro-pro-setup-' + [guid]::NewGuid().ToString('N') + '.ps1'); [IO.File]::WriteAllBytes(`$script, [Convert]::FromBase64String(`$b64)); & powershell.exe -NoProfile -ExecutionPolicy Bypass -File `$script""",
-  "echo.",
-  "echo Se apareceu algum erro acima, tire uma foto ou copie a mensagem.",
-  "echo.",
-  "pause",
-  "exit /b",
-  "::PAYLOAD::",
-  $payloadScriptBase64
-)
-
-Copy-Item $payloadPath $InstallerPs1 -Force
-Copy-Item $runnerPath $InstallerCmd -Force
-Copy-Item $safeRunnerPath $InstallerSafeCmd -Force
-
-$iexpress = Join-Path $env:SystemRoot "System32\iexpress.exe"
-if (-not (Test-Path $iexpress)) {
-  Write-Host "IExpress nao encontrado. Instalador criado em: $InstallerCmd"
-  Write-Host "Arquivo auxiliar criado em: $InstallerPs1"
-  exit 0
-}
-
-$escapedStageRoot = $StageRoot.TrimEnd("\") + "\"
-$sed = @"
-[Version]
-Class=IEXPRESS
-SEDVersion=3
-[Options]
-PackagePurpose=InstallApp
-ShowInstallProgramWindow=1
-HideExtractAnimation=0
-UseLongFileName=1
-InsideCompressed=0
-CAB_FixedSize=0
-CAB_ResvCodeSigning=0
-RebootMode=N
-InstallPrompt=
-DisplayLicense=
-FinishMessage=Instalacao concluida.
-TargetName=$InstallerExe
-FriendlyName=Financeiro Pro Setup
-AppLaunched=cmd.exe /k Financeiro-Pro-Setup.cmd
-PostInstallCmd=<None>
-AdminQuietInstCmd=cmd.exe /k Financeiro-Pro-Setup.cmd
-UserQuietInstCmd=cmd.exe /k Financeiro-Pro-Setup.cmd
-SourceFiles=SourceFiles
-[SourceFiles]
-SourceFiles0=$escapedStageRoot
-[SourceFiles0]
-%FILE0%=
-%FILE1%=
-%FILE2%=
-[Strings]
-FILE0="Financeiro-Pro-Setup.cmd"
-FILE1="Financeiro-Pro-Setup.ps1"
-FILE2="INSTALAR-FINANCEIRO-PRO.cmd"
-"@
-
-Set-Content -Path $sedPath -Encoding ASCII -Value $sed
 Remove-Item $InstallerExe -Force -ErrorAction SilentlyContinue
+Write-Host "Gerando instalador .exe..."
+& $csc /nologo /target:exe /out:$InstallerExe /resource:$PackageZip,SetupPayload.zip /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll $SourcePath
 
-Write-Host "Gerando instalador EXE..."
-& $iexpress /N /Q $sedPath
-
-for ($i = 0; $i -lt 20 -and -not (Test-Path $InstallerExe); $i++) {
-  Start-Sleep -Milliseconds 500
+if (-not (Test-Path $InstallerExe)) {
+  throw "Nao foi possivel gerar o instalador .exe."
 }
 
-if (Test-Path $InstallerExe) {
-  Write-Host "Instalador criado em: $InstallerExe"
-} else {
-  Write-Host "Nao foi possivel gerar o EXE. Use o instalador em: $InstallerCmd"
-  Write-Host "Arquivo auxiliar criado em: $InstallerPs1"
-}
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.exe"
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.cmd"
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.ps1"
+Remove-GeneratedDesktopFile "INSTALAR-FINANCEIRO-PRO.cmd"
+Remove-GeneratedDesktopFile "~Financeiro-Pro-Setup.CAB"
+Remove-Item $PackageZip -Force -ErrorAction SilentlyContinue
+
+Write-Host "Instalador criado em: $InstallerExe"
+Write-Host "Ele instala em AppData\Local\FinanceiroPro e cria o atalho Financeiro Pro na Area de Trabalho."

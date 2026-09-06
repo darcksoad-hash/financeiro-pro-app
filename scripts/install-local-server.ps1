@@ -21,6 +21,28 @@ function Write-CmdFile([string]$Path, [string]$ScriptPath) {
   )
 }
 
+function Write-Shortcut([string]$Path, [string]$ScriptPath, [string]$WorkingDirectory) {
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($Path)
+  $shortcut.TargetPath = "powershell.exe"
+  $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File ""$ScriptPath"""
+  $shortcut.WorkingDirectory = $WorkingDirectory
+  $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
+  $shortcut.Save()
+}
+
+function Remove-GeneratedDesktopFile([string]$FileName) {
+  $desktopCandidates = @(
+    $Desktop,
+    (Join-Path $env:USERPROFILE "Desktop"),
+    (Join-Path $env:USERPROFILE "OneDrive\Desktop")
+  ) | Where-Object { $_ } | Select-Object -Unique
+
+  foreach ($desktopPath in $desktopCandidates) {
+    Remove-Item (Join-Path $desktopPath $FileName) -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Assert-Command([string]$CommandName, [string]$FriendlyName) {
   if (-not (Get-Command $CommandName -ErrorAction SilentlyContinue)) {
     throw "$FriendlyName nao encontrado. Instale o Node.js LTS antes de continuar."
@@ -72,12 +94,18 @@ New-Item -ItemType Directory -Path $Startup -Force | Out-Null
 
 $openScript = Join-Path $PSScriptRoot "open-local-app.ps1"
 $startScript = Join-Path $PSScriptRoot "start-local-api.ps1"
-$stopScript = Join-Path $PSScriptRoot "stop-local-api.ps1"
 $monitorScript = Join-Path $PSScriptRoot "monitor-financeiro.ps1"
 
-Write-CmdFile (Join-Path $Desktop "Financeiro Pro.cmd") $openScript
-Write-CmdFile (Join-Path $Desktop "Iniciar Servidor Financeiro Pro.cmd") $startScript
-Write-CmdFile (Join-Path $Desktop "Parar Servidor Financeiro Pro.cmd") $stopScript
+Remove-GeneratedDesktopFile "Financeiro Pro.cmd"
+Remove-GeneratedDesktopFile "Iniciar Servidor Financeiro Pro.cmd"
+Remove-GeneratedDesktopFile "Parar Servidor Financeiro Pro.cmd"
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.exe"
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.cmd"
+Remove-GeneratedDesktopFile "Financeiro-Pro-Setup.ps1"
+Remove-GeneratedDesktopFile "INSTALAR-FINANCEIRO-PRO.cmd"
+Remove-GeneratedDesktopFile "~Financeiro-Pro-Setup.CAB"
+
+Write-Shortcut (Join-Path $Desktop "Financeiro Pro.lnk") $openScript $ProjectRoot
 Write-CmdFile (Join-Path $Startup "Iniciar Financeiro Pro Local.cmd") $startScript
 
 if (Test-Path $monitorScript) {
