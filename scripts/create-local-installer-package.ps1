@@ -40,4 +40,4 @@ Remove-Item $ZipPath -Force -ErrorAction SilentlyContinue
 Compress-Archive -Path (Join-Path $PackageRoot "*") -DestinationPath $ZipPath -Force
 
 Write-Host "Pacote criado em: $ZipPath"
-Write-Host "Por seguranca, arquivos .env e senhas nao foram incluidos."
+Write-Host "Por seguranca, arquivos .env existentes e dados locais nao foram incluidos."

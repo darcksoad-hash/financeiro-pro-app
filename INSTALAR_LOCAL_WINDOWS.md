@@ -1,14 +1,21 @@
 # Financeiro Pro - instalacao local no Windows
 
-Este modo transforma o computador em servidor local do Financeiro Pro.
+Este modo transforma o computador em servidor local do Financeiro Pro e salva os dados somente nesse computador.
+
+O instalador cria automaticamente:
+
+- o arquivo de configuracao local;
+- o banco local `data.local.json`;
+- o usuario inicial de acesso;
+- os atalhos da Area de Trabalho;
+- a inicializacao junto com o Windows.
 
 ## Como instalar
 
 1. Instale o Node.js LTS no computador, se ainda nao tiver.
 2. Copie a pasta `financeiro-pro-app` para o computador.
-3. Garanta que o arquivo `.env.vercel.local` exista com as variaveis do sistema.
-4. Clique com o botao direito no PowerShell e abra como usuario normal.
-5. Rode:
+3. Clique com o botao direito no PowerShell e abra como usuario normal.
+4. Rode:
 
 ```powershell
 cd "C:\caminho\da\pasta\financeiro-pro-app"
@@ -18,6 +25,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-local-
 ## Como usar
 
 Depois da instalacao, abra pelo atalho `Financeiro Pro` na Area de Trabalho.
+
+Login inicial:
+
+```text
+Usuario: admin.financeiro
+Senha: FinanceiroLocal@2026
+```
 
 Endereco local:
 
@@ -46,3 +60,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall-loca
 ```
 
 Isso remove os atalhos e para o servidor local. A pasta do sistema e os dados nao sao apagados.
+
+## Onde os dados ficam
+
+Os dados ficam no arquivo:
+
+```text
+data.local.json
+```
+
+Cada computador instalado tera o proprio arquivo e os proprios dados. Sem `DATABASE_URL`, nada e enviado para Neon, Render ou Vercel.

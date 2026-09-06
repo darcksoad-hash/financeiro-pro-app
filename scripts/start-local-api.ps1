@@ -1,11 +1,15 @@
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$EnvFile = Join-Path $ProjectRoot ".env.vercel.local"
+$LocalEnvFile = Join-Path $ProjectRoot ".env.local"
+$CloudEnvFile = Join-Path $ProjectRoot ".env.vercel.local"
+$EnvFile = if (Test-Path $LocalEnvFile) { $LocalEnvFile } else { $CloudEnvFile }
 
 if (-not (Test-Path $EnvFile)) {
-  throw "Arquivo .env.vercel.local nao encontrado. Puxe as variaveis do Vercel antes de iniciar."
+  throw "Arquivo de configuracao local nao encontrado. Rode scripts\install-local-server.ps1 antes de iniciar."
 }
+
+Remove-Item Env:\DATABASE_URL -ErrorAction SilentlyContinue
 
 Get-Content $EnvFile | ForEach-Object {
   $line = $_.Trim()
@@ -22,6 +26,10 @@ Get-Content $EnvFile | ForEach-Object {
 
 $env:PORT = "3032"
 $env:NODE_ENV = "production"
+$env:DOTENV_CONFIG_PATH = $EnvFile
+if ($EnvFile -eq $LocalEnvFile) {
+  $env:DATABASE_URL = ""
+}
 Remove-Item Env:\VERCEL -ErrorAction SilentlyContinue
 
 Set-Location $ProjectRoot

@@ -1,7 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$EnvFile = Join-Path $ProjectRoot ".env.vercel.local"
+$EnvFile = Join-Path $ProjectRoot ".env.local"
+$DataFile = Join-Path $ProjectRoot "data.local.json"
 $Desktop = [Environment]::GetFolderPath("Desktop")
 $Startup = [Environment]::GetFolderPath("Startup")
 
@@ -33,11 +34,27 @@ Assert-Command "node.exe" "Node.js"
 Assert-Command "npm.cmd" "npm"
 
 if (-not (Test-Path $EnvFile)) {
-  $ExampleFile = Join-Path $ProjectRoot ".env.example"
-  if (Test-Path $ExampleFile) {
-    Copy-Item $ExampleFile $EnvFile -Force
-  }
-  throw "Arquivo .env.vercel.local nao encontrado. Preencha DATABASE_URL, JWT_SECRET, ADMIN_USER e ADMIN_PASSWORD nesse arquivo e rode o instalador novamente."
+  $secretBytes = New-Object byte[] 32
+  [System.Security.Cryptography.RandomNumberGenerator]::Fill($secretBytes)
+  $jwtSecret = [Convert]::ToBase64String($secretBytes)
+
+  Set-Content -Path $EnvFile -Encoding ASCII -Value @(
+    "NODE_ENV=production",
+    "ADMIN_USER=admin.financeiro",
+    "ADMIN_PASSWORD=FinanceiroLocal@2026",
+    "JWT_SECRET=$jwtSecret"
+  )
+}
+
+if (-not (Test-Path $DataFile)) {
+  Set-Content -Path $DataFile -Encoding UTF8 -Value @'
+{
+  "clients": [],
+  "loans": [],
+  "users": [],
+  "history": []
+}
+'@
 }
 
 Set-Location $ProjectRoot
@@ -75,6 +92,8 @@ try {
   }
   Write-Host "Instalacao concluida."
   Write-Host "Abra pelo atalho Financeiro Pro na Area de Trabalho ou use http://127.0.0.1:3032/"
+  Write-Host "Usuario inicial: admin.financeiro"
+  Write-Host "Senha inicial: FinanceiroLocal@2026"
 } catch {
   throw "Servidor instalado, mas nao respondeu em http://127.0.0.1:3032/. Detalhe: $($_.Exception.Message)"
 }
